@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 135 135" width="135" height="135">
+
+  <title xml:lang="en">PREreview</title>
+
+  <style>
+    :root {
+      --color-white: rgb(254 254 254);
+      --color-black-800: rgb(24 24 24);
+      --color-red-600: rgb(228 0 44);
+      --color-background: var(--color-white);
+      --color-primary: var(--color-red-600);
+      --color-text: var(--color-black-800);
+    }
+
+    .border {
+      fill: var(--color-text);
+    }
+
+    .line {
+      stroke: var(--color-text);
+    }
+
+    .paper {
+      fill: var(--color-background);
+    }
+
+    .primary {
+      fill: var(--color-primary);
+      stroke-width: 0;
+    }
+
+    @media screen and (forced-colors: active) {
+      :root {
+        --color-background: Canvas;
+        --color-primary: CanvasText;
+        --color-text: CanvasText;
+      }
+    }
+  </style>
+
+  <rect x="20.5" y="3.5" width="94" height="116" class="paper" />
+  <path
+    d="M107.5 0C113.299 0 118 4.70101 118 10.5V112.5H111V10.5C111 8.567 109.433 7 107.5 7H27.5C25.567 7 24 8.567 24 10.5V112.5C24 114.433 25.567 116 27.5 116H87V123H27.5C21.701 123 17 118.299 17 112.5V10.5C17 4.70101 21.701 0 27.5 0H107.5Z"
+    class="border"
+  />
+  <path d="M41 90.5H94" stroke-width="7" class="line" />
+  <path d="M41 61.5H94" stroke-width="7" class="line" />
+  <path d="M41 32.5H94" stroke-width="7" class="line" />
+  <path d="M102.5 119.5L82.5 134.5V104.5L102.5 119.5Z" class="primary" />
+</svg>

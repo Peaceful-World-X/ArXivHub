@@ -1,0 +1,7 @@
+node_modules/
+.vercel/
+.nitro/
+.output/
+dist/
+*.log
+screenshots

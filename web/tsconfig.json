@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src", "vite.config.ts"],
+  "exclude": [
+    "src/lib/auth/**",
+    "src/lib/app-data/**",
+    "src/lib/db.ts",
+    "src/lib/env.server.ts",
+    "src/lib/error-component.tsx",
+    "src/lib/multiplayer/**",
+    "src/lib/preview-host-bridge.ts",
+    "src/lib/arxiv.fn.ts",
+    "src/components/preview-host-bridge.tsx"
+  ]
+}
