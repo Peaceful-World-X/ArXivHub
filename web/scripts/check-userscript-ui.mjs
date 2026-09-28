@@ -45,12 +45,13 @@ try {
   await page.addScriptTag({ content: source });
   const nav = page.locator('#arxivhub-bookmarks');
   const documents = page.locator('#arxivhub-document-links');
-  assert.deepEqual(await documents.locator('a').evaluateAll((links)=>links.map(link=>link.dataset.documentFormat)),['pdf','html','src']);
-  for (const [format,href] of [['pdf','https://arxiv.org/pdf/1706.03762'],['html','https://arxiv.org/html/1706.03762v7'],['src','https://arxiv.org/src/1706.03762']]) {
+  assert.deepEqual(await documents.locator('a').evaluateAll((links)=>links.map(link=>link.dataset.documentFormat)),['pdf','html','md','src']);
+  for (const [format,href] of [['pdf','https://arxiv.org/pdf/1706.03762'],['html','https://arxiv.org/html/1706.03762v7'],['md','https://www.arxiv2md.org/api/markdown?url=1706.03762v7'],['src','https://arxiv.org/src/1706.03762']]) {
     const link=documents.locator(`[data-document-format="${format}"]`);
     assert.equal(await link.getAttribute('href'),href);
     assert.ok(await link.getAttribute('title'));
-    await link.locator('img').evaluate(img=>img.decode());
+    if (format === 'md') assert.equal(await link.innerText(), 'MD');
+    else await link.locator('img').evaluate(img=>img.decode());
   }
   assert.equal(await nav.locator('[data-bookmark="hub"] img').getAttribute('src'),`data:image/svg+xml;base64,${Buffer.from(hubIcon).toString('base64')}`);
   assert.deepEqual(await nav.locator(':scope > a').evaluateAll((links) => links.map((link) => link.dataset.bookmark)), ['hub', 'alphaxiv', 'hjfy', 'papers-cool', 'emergent-mind', 'arxivxplorer', 'openreview', 'connected-papers', 'semantic-scholar', 'google-scholar']);
@@ -114,6 +115,7 @@ try {
     assert.ok(boxes.every(box=>Math.abs(box.y-boxes[0].y)<1&&Math.abs(box.width-boxes[0].width)<1));
   }
   await page.setViewportSize({ width: 1280, height: 900 });
+  await documents.screenshot({ path: '../screenshots/userscript-document-md.png' });
   await nav.screenshot({ path: '../screenshots/userscript-bookmarks.png' });
   await page.locator('#native-access a').nth(1).evaluate(link=>link.setAttribute('href','https://arxiv.org/html/1706.03762v6'));
   await page.waitForFunction(()=>document.querySelector('[data-document-format="html"]').href.endsWith('1706.03762v6'));
@@ -126,6 +128,7 @@ try {
   assert.equal(await nav.locator('[data-bookmark="hub"]').getAttribute('href'), 'https://peaceful-world-x.github.io/ArXivHub/p/hep-th~9901001');
   assert.equal(await semantic.getAttribute('data-arxiv-id'), 'hep-th/9901001v2');
   assert.equal(await documents.locator('[data-document-format="src"]').getAttribute('href'),'https://arxiv.org/src/hep-th/9901001v2');
+  assert.equal(await documents.locator('[data-document-format="md"]').getAttribute('href'),'https://www.arxiv2md.org/api/markdown?url=hep-th%2F9901001v2');
   await page.evaluate(() => { history.pushState({}, '', '/search'); window.dispatchEvent(new PopStateEvent('popstate')); });
   assert.equal(await nav.count(), 0);
   assert.equal(await documents.count(), 0);

@@ -2,7 +2,7 @@
 // @name         ArXiv Hub · 论桥 / 一篇论文，全部入口
 // @name:zh-CN   ArXiv Hub · 论桥 / 一篇论文，全部入口
 // @namespace    https://github.com/Peaceful-World-X/ArXivHub
-// @version      2026-09-27.4
+// @version      v1.1.1
 // @description  Colorful paper bookmarks for ArXiv Hub · 论桥, reading, translation, discussion and search, with existing TLDR summaries.
 // @description:zh-CN 在 arXiv 右侧显示 ArXiv Hub · 论桥和论文工具的彩色图标书签，保留 Zotero TLDR、ArXiv TLDR 与跨站导航。
 // @author       Peaceful-World-X
@@ -17,6 +17,9 @@
 // @match        https://www.arxiv.org/abs/*
 // @match        https://www.arxivisual.org/abs/*
 // @match        https://arxivisual.org/abs/*
+// @match        https://peaceful-world-x.github.io/ArXivHub/*
+// @match        http://localhost/*
+// @match        http://127.0.0.1/*
 // @icon         https://raw.githubusercontent.com/Peaceful-World-X/ArXivHub/main/public/favicon.svg
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
@@ -171,11 +174,12 @@
         const style = document.createElement('style');
         style.id = 'arxiv-bridge-styles';
         style.textContent = `
-            #arxivhub-document-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; width: 100%; margin: 0 0 6px; }
+            #arxivhub-document-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; width: 100%; margin: 0 0 6px; }
             #arxivhub-document-links .ab-document-link { display: flex; align-items: center; justify-content: center; height: 36px; box-sizing: border-box; border: 1px solid #dfd2cf; border-radius: 6px; background: #fff8f6; text-decoration: none; }
             #arxivhub-document-links .ab-document-link:hover { background: #f8e0dc; border-color: #b31b1b; }
             #arxivhub-document-links .ab-document-link:focus-visible { outline: 2px solid #b31b1b; outline-offset: 2px; }
             #arxivhub-document-links .ab-document-link span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+            #arxivhub-document-links .ab-document-link strong { color: #922222; font: 700 12px Arial, sans-serif; }
             #arxivhub-bookmarks {
                 display: flex;
                 flex-direction: column;
@@ -449,6 +453,7 @@
         const formats = [
             { id: 'pdf', label: '查看 PDF' },
             { id: 'html', label: 'HTML（实验性）' },
+            { id: 'md', label: 'Markdown 全文', url: `https://www.arxiv2md.org/api/markdown?url=${encodeURIComponent(id)}` },
             { id: 'src', label: 'TeX 源文件' },
         ];
         let nav = document.getElementById(DOCUMENT_LINKS_ID);
@@ -461,12 +466,18 @@
                 link.className = 'ab-document-link';
                 link.dataset.documentFormat = format.id;
                 link.setAttribute('aria-label', format.label);
-                appendBrand(link, format.label, BOOKMARK_ICONS[`document-${format.id}`], 20, 0);
+                if (format.id === 'md') {
+                    const label = document.createElement('strong');
+                    label.textContent = 'MD';
+                    link.appendChild(label);
+                } else {
+                    appendBrand(link, format.label, BOOKMARK_ICONS[`document-${format.id}`], 20, 0);
+                }
                 nav.appendChild(link);
             }
         }
         for (const format of formats) {
-            let href = `https://arxiv.org/${format.id}/${id}`;
+            let href = format.url ?? `https://arxiv.org/${format.id}/${id}`;
             // Prefer the native download URLs, especially the versioned HTML link.
             for (const nativeLink of sidebar.querySelectorAll('.full-text a[href]')) {
                 try {
@@ -1891,6 +1902,43 @@
         if (location.hostname.endsWith('alphaxiv.org')) {
             insertAlphaXivLinks();
         }
+    }
+
+    // Only expose public TLDR text, never arbitrary URLs or privileged storage.
+    function installHubTldrBridge() {
+        const pending = new Map();
+        async function read(id) {
+            const cached = loadTldrCache(id);
+            if (cached?.tldr) return cached.tldr;
+            const data = parseArxivTldrHtml(await requestArxivTldrHtml(`https://arxivtldr.org/abs/${id}`));
+            if (data.tldr) saveTldrCache(id, data);
+            return data.tldr || null;
+        }
+        window.addEventListener('message', (event) => {
+            const message = event.data;
+            if (event.source !== window || event.origin !== location.origin || message?.channel !== 'arxivhub:tldr:v1') return;
+            if (typeof message.requestId !== 'string' || message.requestId.length > 80) return;
+            const reply = (data) => window.postMessage({ channel: message.channel, requestId: message.requestId, ...data }, location.origin);
+            if (message.type === 'ping') {
+                reply({ type: 'ready' });
+                return;
+            }
+            if (message.type !== 'request' || typeof message.id !== 'string' ||
+                !/^(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?\/\d{7})(?:v\d+)?$/i.test(message.id)) return;
+            const id = message.id.replace(/v\d+$/i, '');
+            if (!pending.has(id)) pending.set(id, read(id).finally(() => pending.delete(id)));
+            void pending.get(id).then(
+                (text) => reply({ type: 'result', ok: true, text }),
+                () => reply({ type: 'result', ok: false }),
+            );
+        });
+    }
+
+    const hubHost = location.hostname === 'peaceful-world-x.github.io' && location.pathname.startsWith('/ArXivHub/');
+    const localHub = ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (hubHost || localHub) {
+        installHubTldrBridge();
+        return;
     }
 
     // ── 首次执行 ──

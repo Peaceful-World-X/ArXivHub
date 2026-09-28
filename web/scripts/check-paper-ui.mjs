@@ -10,6 +10,7 @@ const browser = await chromium.launch({
 });
 try {
   const context = await browser.newContext({ permissions: ["clipboard-read", "clipboard-write"] });
+  await context.route("https://api.microlink.io/**", (route) => route.abort());
   let historyUnavailable = false;
   await context.route('https://api.datacite.org/**', async (route) => {
     if (historyUnavailable) return route.fulfill({status:503, body:'Unavailable'});

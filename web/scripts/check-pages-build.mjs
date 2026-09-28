@@ -31,6 +31,7 @@ try {
   browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const errors = [];
+  await page.route('https://api.microlink.io/**', (route) => route.abort());
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('response', (response) => {
     if (response.url().startsWith(url) && /\/(assets|icons)\/|\/favicon\.svg/.test(response.url()) && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);

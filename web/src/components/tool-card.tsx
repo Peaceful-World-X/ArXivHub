@@ -22,7 +22,6 @@ const ICON_OVERRIDES: Record<string, string> = {
   "arxiv-bshk": "https://arxiv.bshk.app/favicon.ico",
   scirate: "https://scirate.com/favicon.ico",
   arxivisual: "https://arxivisual.org/icon.png",
-  "hf-papers": "https://huggingface.co/favicon.ico",
   ar5iv: "https://ar5iv.labs.arxiv.org/favicon.ico",
   "emergent-mind": `${import.meta.env.BASE_URL}icons/emergent-mind.png`,
   "talk2arxiv": "https://www.talk2arxiv.org/favicon.ico",
@@ -30,7 +29,6 @@ const ICON_OVERRIDES: Record<string, string> = {
   "zotero-arxiv-reader": "https://github.com/favicon.ico",
   zotmeta: "https://github.com/favicon.ico",
   xiaohongshu: "https://www.xiaohongshu.com/favicon.ico",
-  "x-search": "https://x.com/favicon.ico",
 };
 
 function localIcon(tool: Tool): string {

@@ -9,6 +9,9 @@ import {
   History,
   Layers,
   Link2,
+  RefreshCw,
+  ArrowUpRight,
+  Puzzle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
@@ -28,6 +31,7 @@ import { EXAMPLE_PAPERS, EXTRAS, PAPER_TOOLS, TOOLS, buildToolUrl } from "@/lib/
 import { MathText } from "@/components/math-text";
 import { fetchArxivTldr } from "@/lib/arxiv-tldr";
 import { PaperAiLinks } from "@/components/paper-ai-links";
+import { InstallGuide } from "@/components/install-guide";
 
 export const Route = createFileRoute("/p/$id")({ component: PaperPage });
 
@@ -51,6 +55,9 @@ function PaperPage() {
   const [loading, setLoading] = useState(true);
   const [tldr, setTldr] = useState<string | null>(null);
   const [tldrLoading, setTldrLoading] = useState(true);
+  const [tldrError, setTldrError] = useState(false);
+  const [tldrAttempt, setTldrAttempt] = useState(0);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,16 +80,17 @@ function PaperPage() {
     let active = true;
     setTldrLoading(true);
     setTldr(null);
+    setTldrError(false);
     void fetchArxivTldr(id)
       .then((text) => {
         if (active) setTldr(text);
       })
-      .catch(() => undefined)
+      .catch(() => { if (active) setTldrError(true); })
       .finally(() => active && setTldrLoading(false));
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, tldrAttempt]);
 
   useEffect(() => {
     const fallbackTitle = EXAMPLE_PAPERS.find((paperItem) => paperItem.id === id)?.title;
@@ -132,6 +140,7 @@ function PaperPage() {
             <div className="flex items-center gap-1">
               <a href={`https://arxiv.org/pdf/${id}`} target="_blank" rel="noreferrer" aria-label={t.pdf} title={t.pdf} className={quickLinkClass}><FileText className="size-5" /></a>
               <a href={`https://arxiv.org/html/${id}`} target="_blank" rel="noreferrer" aria-label={t.html} title={t.html} className={quickLinkClass}><CodeXml className="size-5" /></a>
+              <a href={`https://www.arxiv2md.org/api/markdown?url=${encodeURIComponent(id)}`} target="_blank" rel="noreferrer" aria-label={t.markdown} title={t.markdown} className={quickLinkClass}><span className="font-sans text-xs font-bold">MD</span></a>
               <a href={`https://arxiv.org/tb/${id}`} target="_blank" rel="noreferrer" aria-label={t.trackbacks} title={t.trackbacks} className={quickLinkClass}><Link2 className="size-5" /></a>
               <Button variant="ghost" size="icon" className="rounded-full" title={t.copyBib} aria-label={t.copyBib} disabled={!paper} onClick={() => paper && void copyText(bibtexFor(paper), t.copied)}><Braces className="size-5" /></Button>
             </div>
@@ -185,8 +194,16 @@ function PaperPage() {
         ) : null}
         <section className="mt-5 border-y border-border py-4" data-testid="paper-tldr" aria-busy={tldrLoading}>
           <h2 className="font-display text-lg">ArXiv TLDR</h2>
-          <MathText className="mt-2 text-sm leading-relaxed text-muted" text={tldrLoading ? t.arxivTldrLoading : tldr ?? t.arxivTldrUnavailable} />
+          <MathText className="mt-2 text-sm leading-relaxed text-muted" text={tldrLoading ? t.arxivTldrLoading : tldr ?? (tldrError ? t.arxivTldrFailed : t.arxivTldrUnavailable)} />
+          {!tldrLoading && !tldr ? (
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => setTldrAttempt((value) => value + 1)} title={t.retry} aria-label={t.retry} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-accent"><RefreshCw className="size-4" /></button>
+              {tldrError ? <button type="button" onClick={() => setShowInstallGuide(true)} className="inline-flex min-h-9 items-center gap-1.5 text-sm text-accent"><Puzzle className="size-4" />{t.arxivTldrScript}</button> : null}
+              <a href={`https://arxivtldr.org/abs/${id}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1 text-sm text-accent">{t.viewOriginal}<ArrowUpRight className="size-4" /></a>
+            </div>
+          ) : null}
         </section>
+        {showInstallGuide ? <InstallGuide onClose={() => setShowInstallGuide(false)} /> : null}
 
         {paper?.summary ? (
           <section className="mt-5" aria-labelledby="paper-abstract-heading">

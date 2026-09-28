@@ -3,6 +3,14 @@
 Official site icons downloaded on 2026-09-27. Trademarks belong to their respective owners.
 Local copies avoid favicon path changes and cross-origin image failures.
 
+Added on 2026-09-28 (favicon.im provides cached site icons when the original host is unreachable):
+
+- Hugging Face Papers: https://favicon.im/huggingface.co?larger=true
+- ChatDOC: https://favicon.im/chatdoc.com?larger=true
+- PaperMatch: https://papermatch.me/images/favicon_io/favicon.ico
+- Google Scholar: https://favicon.im/scholar.google.com?larger=true
+- X Search: https://favicon.im/x.com?larger=true
+
 - Emergent Mind: https://assets.emergentmind.com/assets/logo/apple-touch-icon-0ef99efd1c30df096babcedaba91e194f5e1f64e010d9866253ec734c731ce23.png
 - ArXiv Xplorer: https://arxivxplorer.com/icons/icon-96x96.png?v=e0cd7b5f0243163f253dd5c1aa2d8c9a
 - DeepXiv: SVG favicon embedded in https://data.rag.ac.cn/ (downloaded unchanged except URL decoding).

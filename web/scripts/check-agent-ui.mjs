@@ -34,6 +34,7 @@ try {
   assert.equal(await page.locator('article[data-tool-id="iarxiv"] a').getAttribute('href'),'https://iarxiv.org/');
   assert.equal(await page.locator('article[data-tool-id="elicit"]').count(),0);
   assert.equal(await page.locator('article[data-tool-id="arxiv-rss"] a').getAttribute('href'),'https://ronpay.github.io/arxiv-rss-feed-generator/');
+  await page.route('https://api.microlink.io/**', route => route.abort());
   await page.route('https://r.jina.ai/**', route => route.fulfill({status:200,contentType:'text/plain',body:route.request().url().includes('arxivtldr.org')
     ? '## TLDR\nThis model $\\pi_{0.5}$ generalizes.\n### Key contributions\nHidden'
     : '# Title\n$\\pi_{0.5}$: A Vision-Language-Action Model\n# Authors\nPhysical Intelligence\n# Abstract\nA model $\\pi_0$.\n# Categories\ncs.LG\n# Publication Details\n- Published: April 22, 2025\n- arXiv ID: 2504.16054v1\n# BibTeX\n'}));

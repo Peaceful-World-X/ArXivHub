@@ -195,17 +195,21 @@ export function bibtexFor(paper: ArxivPaper): string {
 }`;
 }
 
-// GitHub Pages 没有服务端代理，论文元数据改为浏览器端尽力读取；读取失败时入口链接仍然可用。
+// DataCite supports browser CORS; use the TXT proxy only when DOI metadata is unavailable.
 export async function fetchArxivPaper(id: string): Promise<ArxivPaper> {
+  const dataCite = await fetchDataCite(id).catch(() => null);
+  const registeredPaper = parseDataCitePaper(dataCite, id);
+  if (registeredPaper) return registeredPaper;
+
   const url = `https://r.jina.ai/http://www.arxiv-txt.org/abs/${encodeURIComponent(id)}`;
-  const historyPromise = fetchArxivSubmissionHistory(id).catch(() => null);
+  const historyPromise = fetchArxivSubmissionHistory(id, dataCite).catch(() => null);
   const response = await fetch(url, {
     headers: { Accept: "text/plain" },
     signal: AbortSignal.timeout(8000),
   });
-  if (!response.ok) throw new Error(`arXiv API ${response.status}`);
+  if (!response.ok) throw new Error(`arXiv TXT ${response.status}`);
   const paper = parseArxivTxt(await response.text(), id);
-  if (!paper) throw new Error("Paper not found on arXiv");
+  if (!paper) throw new Error("Paper not found on arXiv TXT");
   const history = await historyPromise;
   const textVersion = Number(paper.versionId.match(/v(\d+)$/)?.[1] ?? 0);
   return history && history.version >= textVersion
@@ -266,6 +270,51 @@ export function parseSubmissionHistory(text: string): PaperHistory | null {
 
 type PaperHistory = { published: string; updated: string; version: number };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function dataCiteAttributes(value: unknown, id: string): Record<string, unknown> | null {
+  if (!isRecord(value) || !isRecord(value.data) || !isRecord(value.data.attributes)) return null;
+  const attrs = value.data.attributes;
+  return String(attrs.doi).toLowerCase() === arxivDoi(id).toLowerCase() ? attrs : null;
+}
+
+export function parseDataCitePaper(value: unknown, id: string): ArxivPaper | null {
+  const attrs = dataCiteAttributes(value, id);
+  if (!attrs) return null;
+  const records = (key: string) => Array.isArray(attrs[key]) ? attrs[key].filter(isRecord) : [];
+  const title = records("titles").find((item) => typeof item.title === "string")?.title;
+  const summary = records("descriptions").find((item) => item.descriptionType === "Abstract")?.description;
+  if (typeof title !== "string" || !title.trim() || typeof summary !== "string" || !summary.trim()) return null;
+  const authors = records("creators").flatMap((creator) => {
+    const name = typeof creator.givenName === "string" && typeof creator.familyName === "string"
+      ? `${creator.givenName} ${creator.familyName}` : creator.name;
+    return typeof name === "string" && name.trim() ? [{ name: name.trim() }] : [];
+  });
+  const categories = records("subjects").flatMap((item) => {
+    if (item.subjectScheme !== "arXiv" || typeof item.subject !== "string") return [];
+    const category = item.subject.match(/\(([^()]+)\)$/)?.[1] ?? item.subject;
+    return category ? [category] : [];
+  });
+  const history = parseDataCiteHistory(value, id);
+  const version = String(attrs.version ?? "").match(/^[1-9]\d*$/)?.[0];
+  return {
+    id,
+    versionId: version ? `${id}v${version}` : id,
+    title: title.trim(),
+    summary: summary.trim(),
+    authors,
+    categories,
+    primaryCategory: categories[0] ?? "",
+    published: history?.published ?? "",
+    updated: history?.updated ?? "",
+    doi: arxivDoi(id),
+    pdfUrl: `https://arxiv.org/pdf/${id}`,
+    absUrl: `https://arxiv.org/abs/${id}`,
+  };
+}
+
 function historyFromVersions(versions: { version: number; stamp: number }[]): PaperHistory | null {
   versions.sort((a, b) => a.version - b.version);
   if (versions[0]?.version !== 1) return null;
@@ -281,11 +330,8 @@ function historyFromVersions(versions: { version: number; stamp: number }[]): Pa
 // DataCite 的顶层 updated 是注册记录修改时间，不能当作论文更新时间。
 // 只接受对应 arXiv DOI 的 Submitted/vN 日期，和 arXiv Submission history 保持一致。
 export function parseDataCiteHistory(value: unknown, id: string): PaperHistory | null {
-  if (!value || typeof value !== "object" || !("data" in value)) return null;
-  const data = value.data;
-  if (!data || typeof data !== "object" || !("attributes" in data)) return null;
-  const attrs = data.attributes;
-  if (!attrs || typeof attrs !== "object" || !("doi" in attrs) || String(attrs.doi).toLowerCase() !== arxivDoi(id).toLowerCase()) return null;
+  const attrs = dataCiteAttributes(value, id);
+  if (!attrs) return null;
   if (!("dates" in attrs) || !Array.isArray(attrs.dates)) return null;
   const versions = attrs.dates.flatMap((date: unknown) => {
     if (!date || typeof date !== "object" || !("dateType" in date) || date.dateType !== "Submitted") return [];
@@ -299,18 +345,16 @@ export function parseDataCiteHistory(value: unknown, id: string): PaperHistory |
   return history;
 }
 
-async function fetchArxivSubmissionHistory(id: string) {
-  try {
-    const response = await fetch(`https://api.datacite.org/dois/${encodeURIComponent(arxivDoi(id))}`, {
-      signal: AbortSignal.timeout(6000),
-    });
-    if (response.ok) {
-      const history = parseDataCiteHistory(await response.json(), id);
-      if (history) return history;
-    }
-  } catch {
-    // 注册记录缺失或请求失败时，再读取 arXiv 原站历史。
-  }
+async function fetchDataCite(id: string): Promise<unknown> {
+  const response = await fetch(`https://api.datacite.org/dois/${encodeURIComponent(arxivDoi(id))}`, {
+    signal: AbortSignal.timeout(6000),
+  });
+  return response.ok ? response.json() : null;
+}
+
+async function fetchArxivSubmissionHistory(id: string, dataCite: unknown) {
+  const history = parseDataCiteHistory(dataCite, id);
+  if (history) return history;
   const response = await fetch(`https://r.jina.ai/https://arxiv.org/abs/${encodeURIComponent(id)}`, {
     headers: { Accept: "text/plain" },
     signal: AbortSignal.timeout(8000),
