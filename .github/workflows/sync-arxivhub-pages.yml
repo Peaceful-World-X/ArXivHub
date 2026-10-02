@@ -1,0 +1,49 @@
+name: Sync to ArXivHub.github.io
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Clone target repository
+        env:
+          TOKEN: ${{ secrets.ARXIVHUB_DEPLOY_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${TOKEN}@github.com/ArXivHub/ArXivHub.github.io.git" target
+
+      - name: Sync files
+        run: |
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='target' \
+            ./ target/
+
+      - name: Push to ArXivHub.github.io
+        working-directory: target
+        env:
+          TOKEN: ${{ secrets.ARXIVHUB_DEPLOY_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
+
+          git commit -m "Sync from Peaceful-World-X/ArXivHub"
+          git push origin main
