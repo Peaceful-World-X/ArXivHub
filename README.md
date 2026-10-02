@@ -5,13 +5,13 @@
   <h1>ArXiv Hub · 论桥</h1>
   <p>输入 arXiv ID，一站跳转阅读、翻译、检索与讨论工具，支持网页和浏览器脚本。</p>
   <p>
-    <a href="https://peaceful-world-x.github.io/ArXivHub/">在线使用</a>
+    <a href="https://arxivhub.github.io/">在线使用</a>
     ·
     <a href="https://raw.githubusercontent.com/Peaceful-World-X/ArXivHub/main/ArXivHub.user.js">安装脚本</a>
   </p>
   <p>
     <a href="https://github.com/Peaceful-World-X/ArXivHub/stargazers"><img src="https://img.shields.io/github/stars/Peaceful-World-X/ArXivHub?style=flat&amp;color=b31b1b&amp;label=Stars" alt="Stars"></a>
-    <a href="https://peaceful-world-x.github.io/ArXivHub/"><img src="https://visitor-badge.laobi.icu/badge?page_id=Peaceful-World-X.ArXivHub&amp;left_color=%236B5B52&amp;right_color=%23D97757" alt="访问数"></a>
+    <a href="https://arxivhub.github.io/"><img src="https://visitor-badge.laobi.icu/badge?page_id=Peaceful-World-X.ArXivHub&amp;left_color=%236B5B52&amp;right_color=%23D97757" alt="访问数"></a>
     <a href="https://github.com/Peaceful-World-X/ArXivHub/issues"><img src="https://img.shields.io/github/issues/Peaceful-World-X/ArXivHub?style=flat&amp;color=b31b1b&amp;label=Issues" alt="Issues"></a>
   </p>
 </div>
@@ -137,7 +137,7 @@ npm run preview
 
 构建产物为仓库内的 `web/dist/`，预览地址为 <http://localhost:8081/>。端口占用时可运行 `npm run preview -- --port 8082`。
 
-GitHub Pages 工作流在 `web/` 中安装依赖并构建，发布 `web/dist/`。线上地址仍为 <https://peaceful-world-x.github.io/ArXivHub/>，不会增加 `/web/` 前缀。默认卡片顺序保存在 [default-tool-orders.json](web/src/lib/default-tool-orders.json)，本地排序后可保存并随代码发布；已有用户的个人排序优先。
+GitHub Pages 工作流在 `web/` 中安装依赖并构建，发布 `web/dist/`。新站点地址为 <https://arxivhub.github.io/>，论文链接例如 <https://arxivhub.github.io/p/1706.03762>。`sync-arxivhub-pages.yml` 使用根路径 `/` 构建并同步到 `ArXivHub/ArXivHub.github.io`，需配置 `ARXIVHUB_DEPLOY_TOKEN`；`deploy-pages.yml` 保留源仓库的子路径部署。默认卡片顺序保存在 [default-tool-orders.json](web/src/lib/default-tool-orders.json)，本地排序后可保存并随代码发布；已有用户的个人排序优先。
 
 ## 项目目录
 

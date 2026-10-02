@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
 
-const base = process.env.ARXIVHUB_URL || "http://127.0.0.1:8083/ArXivHub/";
+const base = process.env.ARXIVHUB_URL || "http://127.0.0.1:8083/";
 const live = process.env.LIVE_TLDR === "1";
 const papers = [
   ["2303.08774", /GPT-4/i],
