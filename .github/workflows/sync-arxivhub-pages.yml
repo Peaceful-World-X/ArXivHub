@@ -1,0 +1,60 @@
+name: Sync to ArXivHub.github.io
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build website
+        working-directory: web
+        env:
+          VITE_BASE: /
+        run: npm run build
+
+      - name: Clone target repository
+        env:
+          TOKEN: ${{ secrets.ARXIVHUB_DEPLOY_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${TOKEN}@github.com/ArXivHub/ArXivHub.github.io.git" target
+
+      - name: Sync built website
+        run: |
+          rsync -av --delete \
+            --exclude='.git' \
+            web/dist/ target/
+
+      - name: Push website
+        working-directory: target
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+            exit 0
+          fi
+
+          git commit -m "Deploy from Peaceful-World-X/ArXivHub"
+          git push origin main

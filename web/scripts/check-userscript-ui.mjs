@@ -58,7 +58,7 @@ try {
   assert.equal(await nav.locator('[data-bookmark="arxivtldr"]').count(), 0);
   assert.deepEqual(await nav.locator('.ab-social a').evaluateAll((links) => links.map((link) => link.dataset.bookmark)), ['xiaohongshu', 'x-search', 'reddit-search', 'zhihu-search', 'hf-papers']);
   const expected = {
-    hub: 'https://peaceful-world-x.github.io/ArXivHub/p/1706.03762',
+    hub: 'https://arxivhub.github.io/p/1706.03762',
     alphaxiv: 'https://www.alphaxiv.org/abs/1706.03762',
     hjfy: 'https://hjfy.top/arxiv/1706.03762',
     'papers-cool': 'https://papers.cool/arxiv/1706.03762',
@@ -125,7 +125,7 @@ try {
   assert.equal(await page.locator('control').count(), 0);
   assert.equal(await semantic.getByRole('button').getAttribute('aria-expanded'), 'false');
   await page.evaluate(() => { history.pushState({}, '', '/abs/hep-th/9901001v2'); window.dispatchEvent(new PopStateEvent('popstate')); });
-  assert.equal(await nav.locator('[data-bookmark="hub"]').getAttribute('href'), 'https://peaceful-world-x.github.io/ArXivHub/p/hep-th~9901001');
+  assert.equal(await nav.locator('[data-bookmark="hub"]').getAttribute('href'), 'https://arxivhub.github.io/p/hep-th~9901001');
   assert.equal(await semantic.getAttribute('data-arxiv-id'), 'hep-th/9901001v2');
   assert.equal(await documents.locator('[data-document-format="src"]').getAttribute('href'),'https://arxiv.org/src/hep-th/9901001v2');
   assert.equal(await documents.locator('[data-document-format="md"]').getAttribute('href'),'https://www.arxiv2md.org/api/markdown?url=hep-th%2F9901001v2');

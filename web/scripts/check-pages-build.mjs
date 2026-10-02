@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
-const base = '/ArXivHub/';
+const base = process.env.VITE_BASE || '/';
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' };
 assert.equal(await readFile(resolve(root, 'index.html'), 'utf8'), await readFile(resolve(root, '404.html'), 'utf8'));
 assert.equal((await stat(resolve(root, '.nojekyll'))).isFile(), true);
@@ -42,7 +42,7 @@ try {
   await page.route('https://api.datacite.org/**', (route) => route.fulfill({ status: 404, body: 'Unavailable' }));
   assert.equal((await page.goto(url)).status(), 200);
   await page.locator('article').first().waitFor();
-  for (const image of await page.locator('img[src^="/ArXivHub/"]').all()) await image.evaluate((img) => img.decode());
+  for (const image of await page.locator(`img[src^="${base}"]`).all()) await image.evaluate((img) => img.decode());
   assert.equal((await page.request.get(new URL('favicon.svg', url).href)).status(), 200);
   assert.equal((await page.request.get(new URL('icons/hjfy.svg', url).href)).status(), 200);
   for (const width of [1280, 390]) {
@@ -57,8 +57,10 @@ try {
   await page.getByTestId('paper-tools').waitFor();
   assert.equal(await page.locator('a[href="https://arxiv.org/pdf/1706.03762"]').count(), 1);
   assert.ok(await page.locator(`a[href="${base}"]`).count() > 0);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({ path: '../screenshots/short-domain-paper-1280.png' });
   assert.deepEqual(errors, []);
-  console.log('PASS: /ArXivHub/ production build, static icons, direct about/paper routes through 404.html, desktop/mobile rendering.');
+  console.log(`PASS: ${base} production build, static icons, direct about/paper routes through 404.html, desktop/mobile rendering.`);
 } finally {
   await browser?.close();
   server.closeAllConnections();

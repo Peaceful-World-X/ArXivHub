@@ -2,7 +2,7 @@
 // @name         ArXiv Hub · 论桥 / 一篇论文，全部入口
 // @name:zh-CN   ArXiv Hub · 论桥 / 一篇论文，全部入口
 // @namespace    https://github.com/Peaceful-World-X/ArXivHub
-// @version      v1.1.1
+// @version      v1.1.2
 // @description  Colorful paper bookmarks for ArXiv Hub · 论桥, reading, translation, discussion and search, with existing TLDR summaries.
 // @description:zh-CN 在 arXiv 右侧显示 ArXiv Hub · 论桥和论文工具的彩色图标书签，保留 Zotero TLDR、ArXiv TLDR 与跨站导航。
 // @author       Peaceful-World-X
@@ -17,7 +17,7 @@
 // @match        https://www.arxiv.org/abs/*
 // @match        https://www.arxivisual.org/abs/*
 // @match        https://arxivisual.org/abs/*
-// @match        https://peaceful-world-x.github.io/ArXivHub/*
+// @match        https://arxivhub.github.io/*
 // @match        http://localhost/*
 // @match        http://127.0.0.1/*
 // @icon         https://raw.githubusercontent.com/Peaceful-World-X/ArXivHub/main/public/favicon.svg
@@ -106,7 +106,7 @@
 
     const BOOKMARKS_ID = 'arxivhub-bookmarks';
     const DOCUMENT_LINKS_ID = 'arxivhub-document-links';
-    const HUB_URL = 'https://peaceful-world-x.github.io/ArXivHub/';
+    const HUB_URL = 'https://arxivhub.github.io/';
     const ZOTERO_TLDR_CARD_ID = 'zotero-style-tldr-sidebar-card';
     const ARXIV_TLDR_CARD_ID = 'arxivtldr-sidebar-card';
     const ARXIV_VISUAL_STATUS_ID = 'arxivisual-status-badge';
@@ -1934,7 +1934,7 @@
         });
     }
 
-    const hubHost = location.hostname === 'peaceful-world-x.github.io' && location.pathname.startsWith('/ArXivHub/');
+    const hubHost = location.hostname === 'arxivhub.github.io';
     const localHub = ['localhost', '127.0.0.1'].includes(location.hostname);
     if (hubHost || localHub) {
         installHubTldrBridge();
