@@ -64,6 +64,26 @@ try {
   assert.deepEqual(errors, []);
   await context.close();
 
+  // A userscript can receive an unfinished page; its empty result must not stop fallback.
+  const emptyBridge = await browser.newContext();
+  await emptyBridge.addInitScript({ content: `window.GM_xmlhttpRequest = (options) => {
+    options.onload({status:200, responseText:'<h2>Original Abstract</h2><p>NOT A TLDR</p>'});
+  };\n${source}` });
+  await emptyBridge.route("https://api.datacite.org/**", (route) => route.fulfill({ status: 404 }));
+  await emptyBridge.route("https://r.jina.ai/**", (route) => route.abort());
+  let emptyBridgeFallbacks = 0;
+  await emptyBridge.route("https://api.microlink.io/**", (route) => {
+    emptyBridgeFallbacks++;
+    return route.fulfill({ json: { status: "success", statusCode: 200, data: {
+      url: "https://arxivtldr.org/abs/2303.08774", tldr: summary,
+    } } });
+  });
+  const emptyBridgePage = await emptyBridge.newPage();
+  await emptyBridgePage.goto(new URL("p/2303.08774", base).href, { waitUntil: "domcontentloaded" });
+  await emptyBridgePage.getByTestId("paper-tldr").getByText(summary, { exact: true }).waitFor();
+  assert.equal(emptyBridgeFallbacks, 1);
+  await emptyBridge.close();
+
   const fallback = await browser.newContext();
   await fallback.route("https://api.microlink.io/**", (route) => route.abort());
   let readerFails = true;
@@ -83,7 +103,7 @@ try {
   await retryPanel.getByText(summary, { exact: true }).waitFor();
   assert.equal(await retryPanel.getByRole("button", { name: "重试", exact: true }).count(), 0);
   await fallback.close();
-  console.log(JSON.stringify({ live, elapsed, directRequests, readerRequests, persistentCache: "passed", retry: "passed" }));
+  console.log(JSON.stringify({ live, elapsed, directRequests, readerRequests, persistentCache: "passed", emptyBridgeFallback: "passed", retry: "passed" }));
 } finally {
   await browser.close();
 }

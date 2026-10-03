@@ -8,6 +8,7 @@ const papers = [
   ["2303.08774", /GPT-4/i],
   ["1706.03762", /Transformer|attention/i],
   ["2504.16054", /robot|vision|language/i],
+  ["2307.15818", /RT-2/i],
 ];
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
 try {
@@ -22,8 +23,12 @@ try {
   if (!live) {
     await context.route("https://api.datacite.org/**", (route) => route.fulfill({ status: 404 }));
     await context.route("https://api.microlink.io/**", (route) => {
-      const url = new URL(route.request().url()).searchParams.get("url");
-      return route.fulfill({ json: { status: "success", statusCode: 200, data: { url, tldr: "GPT-4, Transformer attention, and robot vision language research summary." } } });
+      const params = new URL(route.request().url()).searchParams;
+      const url = params.get("url");
+      const stale = url.endsWith("2307.15818") && params.get("force") !== "true";
+      return route.fulfill({ json: { status: "success", statusCode: 200, data: {
+        url, tldr: stale ? null : "GPT-4, Transformer attention, RT-2, and robot vision language research summary.",
+      } } });
     });
   }
   const page = await context.newPage();
@@ -54,12 +59,19 @@ try {
       await page.setViewportSize({ width: 1440, height: 1050 });
     }
   }
-  assert.equal(apiRequests.length, papers.length);
+  const expectedRequests = apiRequests.length;
+  for (const [id] of papers) {
+    const refreshes = apiRequests.map((url) => new URL(url).searchParams)
+      .filter((params) => params.get("url").endsWith(id)).map((params) => params.get("force"));
+    assert.deepEqual(refreshes, refreshes.length === 1 ? [null] : [null, "true"]);
+  }
+  if (!live) assert.deepEqual(apiRequests.map((url) => new URL(url).searchParams)
+    .filter((params) => params.get("url").endsWith("2307.15818")).map((params) => params.get("force")), [null, "true"]);
   assert.equal(readerRequests, 0);
   await context.route("https://api.microlink.io/**", (route) => route.abort());
   await page.goto(new URL("p/2303.08774", base).href, { waitUntil: "domcontentloaded" });
   await page.getByTestId("paper-tldr").getByText(results[0].text, { exact: true }).waitFor();
-  assert.equal(apiRequests.length, papers.length);
+  assert.equal(apiRequests.length, expectedRequests);
   assert.equal(readerRequests, 0);
   assert.deepEqual(errors, []);
   await context.close();
@@ -67,14 +79,14 @@ try {
   // Missing summaries must not be replaced with the metadata description.
   const missing = await browser.newContext();
   await missing.route("https://api.datacite.org/**", (route) => route.fulfill({ status: 404 }));
-  await missing.route("https://r.jina.ai/**", (route) => route.abort());
+  await missing.route("https://r.jina.ai/**", (route) => route.fulfill({ contentType: "text/plain", body: "## Original Abstract\nNOT A TLDR" }));
   await missing.route("https://api.microlink.io/**", (route) => route.fulfill({ json: {
     status: "success", statusCode: 200,
     data: { url: "https://arxivtldr.org/abs/2303.08774", tldr: null, description: "NOT A TLDR" },
   } }));
   const missingPage = await missing.newPage();
   await missingPage.goto(new URL("p/2303.08774", base).href, { waitUntil: "domcontentloaded" });
-  await missingPage.getByTestId("paper-tldr").getByText("暂无可用 TLDR", { exact: true }).waitFor();
+  await missingPage.getByTestId("paper-tldr").getByText("暂未读取到 TLDR", { exact: true }).waitFor();
   assert.doesNotMatch(await missingPage.getByTestId("paper-tldr").innerText(), /NOT A TLDR/);
   await missing.close();
 

@@ -5,7 +5,7 @@ import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
-const root = fileURLToPath(new URL('../dist/', import.meta.url));
+const root = process.env.ARXIVHUB_DIST ? resolve(process.env.ARXIVHUB_DIST) : fileURLToPath(new URL('../dist/', import.meta.url));
 const base = process.env.VITE_BASE || '/';
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' };
 assert.equal(await readFile(resolve(root, 'index.html'), 'utf8'), await readFile(resolve(root, '404.html'), 'utf8'));

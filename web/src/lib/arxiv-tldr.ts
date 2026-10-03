@@ -44,7 +44,8 @@ const pending = new Map<string, Promise<string | null>>();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_KEY = "arxivhub:tldr:extractor-retry-at";
 
-async function fetchExtractedTldr(id: string): Promise<string | null> {
+// 空结果可能来自提取服务的旧缓存；刷新时要求重新读取原站。
+async function fetchExtractedTldr(id: string, refresh = false): Promise<string | null> {
   let retryAt = 0;
   try { retryAt = Number(localStorage.getItem(RATE_LIMIT_KEY)); } catch { /* Optional storage. */ }
   if (retryAt > Date.now()) throw new Error("TLDR extractor rate limited");
@@ -52,6 +53,7 @@ async function fetchExtractedTldr(id: string): Promise<string | null> {
   url.searchParams.set("url", `https://arxivtldr.org/abs/${id}`);
   url.searchParams.set("data.tldr.selector", "#tldr-heading + p");
   url.searchParams.set("data.tldr.type", "text");
+  if (refresh) url.searchParams.set("force", "true");
   const response = await fetch(url, { signal: AbortSignal.timeout(18000) });
   if (response.status === 429) {
     const reset = Number(response.headers.get("x-rate-limit-reset")) * 1000;
@@ -124,12 +126,14 @@ export async function fetchArxivTldr(id: string): Promise<string | null> {
   return request;
 }
 
+// 任一来源的空结果都不代表原站没有摘要，继续刷新或读取备用来源。
 async function loadArxivTldr(id: string): Promise<string | null> {
   const bridge = await readFromUserscript(id).catch(() => null);
-  if (bridge?.available) return bridge.text;
+  if (bridge?.text) return bridge.text;
   try {
     // Extract the explicit TLDR paragraph, never the site's generic meta description.
-    return await fetchExtractedTldr(id);
+    const text = await fetchExtractedTldr(id) ?? await fetchExtractedTldr(id, true);
+    if (text) return text;
   } catch {
     // The public extraction API has a free quota; Reader remains a fallback.
   }

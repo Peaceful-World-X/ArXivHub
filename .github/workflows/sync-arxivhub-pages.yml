@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: sync-arxivhub-pages
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -31,17 +35,17 @@ jobs:
           VITE_BASE: /
         run: npm run build
 
+      - name: Test static website sync
+        run: node --test web/scripts/sync-pages.test.mjs
+
       - name: Clone target repository
         env:
           TOKEN: ${{ secrets.ARXIVHUB_DEPLOY_TOKEN }}
         run: |
           git clone "https://x-access-token:${TOKEN}@github.com/ArXivHub/ArXivHub.github.io.git" target
 
-      - name: Sync built website
-        run: |
-          rsync -av --delete \
-            --exclude='.git' \
-            web/dist/ target/
+      - name: Sync and verify built website
+        run: node web/scripts/sync-pages.mjs web/dist target
 
       - name: Push website
         working-directory: target

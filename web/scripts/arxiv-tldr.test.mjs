@@ -48,6 +48,56 @@ test("extraction failures fall back to Reader without using generic descriptions
   assert.equal(await fetchArxivTldr("1706.03762"), "The original paper summary.");
   assert.equal(requests.length, 2);
 });
+
+test("refresh a cached empty extraction before giving up on RT-2", async (t) => {
+  const id = "2307.15818";
+  const summary = "RT-2 introduces Vision-Language-Action models that transfer web knowledge to robotic control, enabling emergent semantic reasoning and generalization.";
+  const refreshes = [];
+  t.mock.method(globalThis, "fetch", async (input) => {
+    const url = new URL(input);
+    assert.equal(url.origin, "https://api.microlink.io");
+    const refresh = url.searchParams.get("force");
+    refreshes.push(refresh);
+    return Response.json({ status: "success", statusCode: 200, data: {
+      url: `https://arxivtldr.org/abs/${id}`, tldr: refresh ? summary : null,
+      description: "Original abstract, not a TLDR.",
+    } });
+  });
+  assert.equal(await fetchArxivTldr(id), summary);
+  assert.equal(await fetchArxivTldr(id), summary);
+  assert.deepEqual(refreshes, [null, "true"]);
+});
+
+test("empty extractions still fall back to Reader", async (t) => {
+  const id = "2303.04137";
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (input) => {
+    const url = new URL(input);
+    requests.push(url.origin);
+    return url.origin === "https://api.microlink.io"
+      ? Response.json({ status: "success", statusCode: 200, data: { url: `https://arxivtldr.org/abs/${id}`, tldr: null } })
+      : new Response("## TLDR\nDiffusion Policy learns robot actions through diffusion.");
+  });
+  assert.equal(await fetchArxivTldr(id), "Diffusion Policy learns robot actions through diffusion.");
+  assert.deepEqual(requests, ["https://api.microlink.io", "https://api.microlink.io", "https://r.jina.ai"]);
+});
+
+test("do not cache missing summaries or confuse a failed fallback with absence", async (t) => {
+  const id = "2410.24164";
+  let readerFails = true;
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async (input) => {
+    requests++;
+    return String(input).startsWith("https://api.microlink.io")
+      ? Response.json({ status: "success", statusCode: 200, data: { url: `https://arxivtldr.org/abs/${id}`, tldr: null } })
+      : readerFails ? new Response("Unavailable", { status: 503 }) : new Response("## Original Abstract\nNot a TLDR.");
+  });
+  await assert.rejects(fetchArxivTldr(id), /ArXiv TLDR 503/);
+  readerFails = false;
+  assert.equal(await fetchArxivTldr(id), null);
+  assert.equal(await fetchArxivTldr(id), null);
+  assert.equal(requests, 9);
+});
 test("recognize setext headings and formatted text without executing HTML", () => {
   assert.equal(parseArxivTldr("TL;DR\n-----\nThe **model** [learns](https://example.org/).\n\nSecond paragraph.\n### Why it matters\nNot shown"), "The model learns.");
 });
