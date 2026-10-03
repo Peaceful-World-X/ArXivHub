@@ -9,15 +9,15 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(base);
   const tab = (name) => page.getByRole('button', { name, exact: true });
-  assert.match(await page.getByTestId('home-stats').innerText(), /67 个网址\s*·\s*15 个工具/);
+  assert.match(await page.getByTestId('home-stats').innerText(), /70 个网址\s*·\s*15 个工具/);
   assert.deepEqual(await page.locator('button[data-category]').evaluateAll(items=>items.map(el=>el.dataset.category)), ['all','favorites','source','ai','discussion','search','translate','discover','xiv','agent','zotero']);
-  assert.equal(await page.locator('article').count(), 82);
+  assert.equal(await page.locator('article').count(), 85);
   assert.equal(await page.locator('h1').evaluate((el) => getComputedStyle(el).fontSize), '64px');
   assert.equal(await page.locator('h1').evaluate((el) => getComputedStyle(el).letterSpacing), 'normal');
   assert.match(await page.locator('h1').evaluate((el) => getComputedStyle(el).fontFamily), /Noto Serif/);
   assert.equal(await page.locator('#arxiv-query').evaluate((el) => el.getBoundingClientRect().height), 58);
   assert.equal(await page.getByRole('button', { name: '打开论文', exact: true }).evaluate((el) => el.getBoundingClientRect().height), 58);
-  assert.equal(await page.locator('.example-links a').count(), 4);
+  assert.equal(await page.locator('.example-links a').count(), 5);
   assert.ok(await page.locator('.example-links a').evaluateAll((links) => links.every((el) => getComputedStyle(el).borderTopWidth === '0px' && getComputedStyle(el).borderRadius === '0px')));
   assert.equal(await tab('全部').evaluate((el) => getComputedStyle(el, '::after').backgroundColor), 'rgb(179, 27, 27)');
   assert.equal(await tab('Agent').evaluate((el) => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
@@ -40,7 +40,7 @@ try {
   }
   await tab('Toggle language').click();
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'en');
-  assert.match(await page.getByTestId('home-stats').innerText(), /67 websites\s*·\s*15 tools/);
+  assert.match(await page.getByTestId('home-stats').innerText(), /70 websites\s*·\s*15 tools/);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: '../screenshots/editorial-home-english-mobile.png', animations: 'disabled' });
   await tab('Toggle language').click();

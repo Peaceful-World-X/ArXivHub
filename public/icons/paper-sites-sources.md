@@ -28,6 +28,9 @@ Added on 2026-09-28 (favicon.im provides cached site icons when the original hos
 - ChatPaper: https://chatpaper.com/favicon.png
 - ScienceCast: https://www.sciencecast.org/assets/logo_small-fdfe8bd193aed67a384052ac10799f7b060d718bbcbf55425392318c35983ae2.webp
 - IArxiv: https://iarxiv.org/favicon.ico
+- Gist Science: https://gist.science/ (inline SVG favicon, saved locally).
+- Moonlight: https://www.themoonlight.io/favicon.ico
+- Growbotics: https://robotics.growbotics.ai/favicon.svg
 - ResearchHub: https://www.researchhub.com/apple-icon.png
 - arXiv2MD: https://www.arxiv2md.org/static/favicons/favicon.ico?v=2
 - Reddit: https://www.redditstatic.com/desktop2x/img/favicon/favicon-96x96.png

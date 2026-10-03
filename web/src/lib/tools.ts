@@ -465,6 +465,54 @@ export const TOOLS: Tool[] = [
     langs: ["en"],
   },
   {
+    id: "gist-science",
+    name: "Gist Science",
+    nameZh: "Gist Science",
+    blurb: "Plain-language AI summaries and key insights for arXiv papers.",
+    blurbZh: "用通俗语言解读论文，提炼摘要与研究要点。",
+    category: "ai",
+    kind: "paper",
+    url: "https://gist.science/zh/paper/{id}",
+    home: "https://gist.science/",
+    icon: "icons/gist-science.svg",
+    probe: "reachable",
+    probeNote: "200 · Chinese paper explanation at /zh/paper/2608.05594.",
+    probeNoteZh: "200，中文论文解读页可访问。",
+    langs: ["en", "zh"],
+  },
+  {
+    id: "moonlight",
+    name: "Moonlight",
+    nameZh: "Moonlight",
+    blurb: "AI paper explanations, summaries, translation, and chat.",
+    blurbZh: "AI 论文解读、摘要、翻译与问答。",
+    category: "ai",
+    kind: "paper",
+    url: "https://www.themoonlight.io/zh/review/{titleSlug}",
+    home: "https://www.themoonlight.io/zh",
+    icon: "icons/moonlight.ico",
+    probe: "reachable",
+    probeNote: "Title-derived slug, not an official arXiv ID route; missing titles open Explore. Review probe rate-limited (429).",
+    probeNoteZh: "按标题生成链接，非官方 arXiv ID 直达；缺少标题时打开 Explore。论文页探测遇到限流（429）。",
+    langs: ["en", "zh"],
+  },
+  {
+    id: "growbotics",
+    name: "Growbotics",
+    nameZh: "Growbotics",
+    blurb: "Curated robotics research papers with methods and key insights explained.",
+    blurbZh: "机器人研究论文精选、核心方法与研究亮点解读。",
+    category: "ai",
+    kind: "hub",
+    url: "https://robotics.growbotics.ai/research/papers",
+    home: "https://robotics.growbotics.ai/research/papers",
+    icon: "icons/growbotics.svg",
+    probe: "hub-only",
+    probeNote: "Browse or search the site's paper directory.",
+    probeNoteZh: "打开论文目录，由用户自行搜索。",
+    langs: ["en"],
+  },
+  {
     id: "sciencecast",
     name: "ScienceCast",
     nameZh: "ScienceCast",
@@ -1126,8 +1174,9 @@ export const EXAMPLE_PAPERS: Array<{
 }> = [
   { id: "1706.03762", title: "Attention Is All You Need", year: "2017" },
   { id: "2303.08774", title: "GPT-4", year: "2023" },
+  { id: "2307.15818", title: "RT-2", year: "2023" },
   { id: "2504.16054", title: "Pi05", year: "2025" },
-  { id: "2608.15875", title: "GigaBrain-0.7", year: "2026"},
+  { id: "2608.15875", title: "GigaBrain-0.7", year: "2026" },
 ];
 
 export type ToolContext = {
@@ -1137,6 +1186,18 @@ export type ToolContext = {
 };
 
 export function buildToolUrl(tool: Tool, ctx: ToolContext): string {
+  // Moonlight 使用标题路径；清理 LaTeX 命令和标点，无标题时保留检索入口。
+  if (tool.id === "moonlight") {
+    const slug = (ctx.title ?? "")
+      .replace(/\\[a-zA-Z]+/g, "")
+      .normalize("NFKD")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/[\s-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return slug ? tool.url.replace("{titleSlug}", slug) : `${tool.home}/explore`;
+  }
   const titleEnc = encodeURIComponent(ctx.title || ctx.id);
   return tool.url
     .replaceAll("{id}", ctx.id)

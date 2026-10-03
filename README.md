@@ -30,7 +30,7 @@
 
 ## 网址清单
 
-共 82 个入口；分类与[网站配置](web/src/lib/tools.ts)一致。
+共 85 个入口（70 个网址、15 个工具）；分类与[网站配置](web/src/lib/tools.ts)一致。
 
 | 分类 | 名称 | 网址 | 简介 |
 | --- | --- | --- | --- |
@@ -47,6 +47,9 @@
 | AIChat | arXivisual | <https://arxivisual.org/> | 论文可视化讲解 |
 | AIChat | Talk2Arxiv | <https://www.talk2arxiv.org/> | 论文智能问答 |
 | AIChat | ScienceCast | <https://www.sciencecast.org/> | 科研论文视频讲解 |
+| AIChat | Gist Science | <https://gist.science/> | AI 论文解读与要点摘要 |
+| AIChat | Moonlight | <https://www.themoonlight.io/zh> | AI 论文解读与问答 |
+| AIChat | Growbotics | <https://robotics.growbotics.ai/research/papers> | 机器人研究论文精选、核心方法与研究亮点解读 |
 | AIChat | Explainpaper | <https://www.explainpaper.com/> | 论文难句解释 |
 | AIChat | SciSpace | <https://scispace.com/> | 论文检索与 AI 阅读 |
 | AIChat | ChatDOC | <https://chatdoc.com/> | 带引用的文档问答 |

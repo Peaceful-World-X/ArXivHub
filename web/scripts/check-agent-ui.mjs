@@ -22,7 +22,10 @@ try {
   assert.equal(await page.locator('article').count(),6);
   assert.equal(await page.locator('article[data-tool-id="zotero-bib"] a').getAttribute('href'),'https://zbib.org/');
   await page.getByRole('button',{name:'AIChat',exact:true}).click();
-  assert.equal(await page.locator('article').count(),11);
+  assert.equal(await page.locator('article').count(),14);
+  assert.equal(await page.locator('article[data-tool-id="growbotics"] a').getAttribute('href'),'https://robotics.growbotics.ai/research/papers');
+  assert.equal(await page.locator('article[data-tool-id="moonlight"] a').getAttribute('href'),'https://www.themoonlight.io/zh');
+  assert.equal(await page.locator('article[data-tool-id="gist-science"] a').getAttribute('href'),'https://gist.science/');
   assert.equal(await page.locator('article[data-tool-id="emergent-mind"]').count(),0);
   assert.equal(await page.locator('article[data-tool-id="sciencecast"] a').getAttribute('href'),'https://www.sciencecast.org/');
   assert.equal(await page.locator('article[data-tool-id="chatpaper"] a').getAttribute('href'),'https://chatpaper.com/');
@@ -47,10 +50,13 @@ try {
   assert.equal(await page.locator('h1 a').getAttribute('href'),'https://arxiv.org/abs/2504.16054');
   assert.doesNotMatch(await page.locator('h1 .katex-html').innerText(), /\$|\\pi/);
   assert.equal(await page.getByTestId('paper-tools').getByRole('button',{name:'Agent',exact:true}).count(),0);
+  assert.equal(await page.locator('#paper-tools-ai [data-tool-id="gist-science"] a').getAttribute('href'),'https://gist.science/zh/paper/2504.16054');
+  assert.equal(await page.locator('#paper-tools-ai [data-tool-id="moonlight"] a').getAttribute('href'),'https://www.themoonlight.io/zh/review/05-a-vision-language-action-model');
+  assert.equal(await page.locator('#paper-tools-ai [data-tool-id="growbotics"] a').getAttribute('href'), 'https://robotics.growbotics.ai/research/papers');
   for(const width of [1280,390]) {
     await page.setViewportSize({width,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   }
   assert.deepEqual(errors,[]);
-  console.log('PASS: Agent/source categories; eleven AIChat tools; discovery includes Emergent Mind and IArxiv; removed entries absent; title/TLDR math; desktop/mobile.');
+  console.log('PASS: Agent/source categories; fourteen AIChat tools; Gist Science, Moonlight and Growbotics home/paper links; discovery includes Emergent Mind and IArxiv; removed entries absent; title/TLDR math; desktop/mobile.');
 } finally {await browser.close()}
