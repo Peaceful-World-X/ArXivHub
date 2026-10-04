@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fetchArxivPaper, parseDataCitePaper } from "../src/lib/arxiv.ts";
+import { fetchArxivPaper, parseAlphaXivPaper, parseDataCitePaper } from "../src/lib/arxiv.ts";
+import { fetchAlphaXivLikes, fetchAlphaXivPreview, parseAlphaXivLikes } from "../src/lib/alphaxiv.ts";
 
 const id = "2303.08774";
 const attrs = {
@@ -66,6 +67,7 @@ test("failed or incomplete DataCite metadata falls back to TXT", async (t) => {
             ...attrs, ...(mode === "missing-title" ? { titles: [] } : { descriptions: [] }),
           } } });
         }
+        if (url.includes("api.alphaxiv.org")) return new Response("Unavailable", { status: 503 });
         if (url.includes("/https://arxiv.org/abs/")) return new Response("## Submission history\n**[v1]** Wed, 15 Mar 2023 17:15:04 UTC\n**[v6]** Mon, 4 Mar 2024 06:01:33 UTC");
         assert.ok(url.includes("arxiv-txt.org"));
         return new Response(`# Title\nTXT title\n# Authors\nOpenAI\n# Abstract\nTXT abstract\n# Categories\ncs.CL\n# Publication Details\n- arXiv ID: ${id}v6\n# BibTeX\n`);
@@ -82,4 +84,88 @@ test("failed or incomplete DataCite metadata falls back to TXT", async (t) => {
 test("total upstream failure still rejects instead of inventing metadata", async (t) => {
   t.mock.method(globalThis, "fetch", async () => new Response("Unavailable", { status: 503 }));
   await assert.rejects(fetchArxivPaper(id), /arXiv TXT 503/);
+});
+
+const alphaRecord = {
+  universal_paper_id: "2608.05594", canonical_id: "2608.05594v2",
+  title: "JTA: Joint Testability Architecture for Scenario-Based Validation of Safety-Critical Software",
+  abstract: "A framework for joint testability and scenario-based validation.",
+  authors: ["First Author", "Second Author"], topics: ["Computer Science", "cs.SE", "cs.AI"],
+  first_publication_date: "2026-08-06T12:00:00.000Z", publication_date: "2026-08-20T12:00:00.000Z",
+  updated_at: "2026-10-04T12:00:00.000Z", metrics: { public_total_votes: 0 },
+};
+
+test("alphaXiv metadata requires the matching paper and uses actual publication fields, never platform updated_at", () => {
+  const paper = parseAlphaXivPaper(alphaRecord, "2608.05594");
+  assert.equal(paper.title, alphaRecord.title);
+  assert.equal(paper.summary, alphaRecord.abstract);
+  assert.equal(paper.versionId, "2608.05594v2");
+  assert.deepEqual(paper.authors, [{ name: "First Author" }, { name: "Second Author" }]);
+  assert.deepEqual(paper.categories, ["cs.SE", "cs.AI"]);
+  assert.equal(paper.primaryCategory, "cs.SE");
+  assert.equal(paper.published, alphaRecord.first_publication_date);
+  assert.equal(paper.updated, alphaRecord.publication_date);
+  assert.equal(parseAlphaXivPaper({ ...alphaRecord, canonical_id: "2608.05594v1" }, "2608.05594").updated, "");
+  const undated = parseAlphaXivPaper({ ...alphaRecord, first_publication_date: null, publication_date: null }, "2608.05594");
+  assert.equal(undated.published, "");
+  assert.equal(undated.updated, "");
+  for (const value of [null, {}, { ...alphaRecord, universal_paper_id: "2303.08774" },
+    { ...alphaRecord, canonical_id: "2303.08774v2" }, { ...alphaRecord, title: "" }, { ...alphaRecord, abstract: "" }]) {
+    assert.equal(parseAlphaXivPaper(value, "2608.05594"), null);
+  }
+});
+
+test("failed DataCite metadata uses the public alphaXiv preview before any TXT request", async (t) => {
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    requests.push(url);
+    if (url.includes("api.datacite.org")) return new Response("Unavailable", { status: 503 });
+    assert.equal(url, "https://api.alphaxiv.org/papers/v3/2608.05594/preview");
+    return Response.json(alphaRecord);
+  });
+  const paper = await fetchArxivPaper("2608.05594");
+  assert.equal(paper.title, alphaRecord.title);
+  assert.equal(paper.versionId, "2608.05594v2");
+  assert.equal(requests.length, 2);
+});
+
+test("an unrelated alphaXiv response is rejected and the existing TXT fallback remains available", async (t) => {
+  const requestedId = "2401.12345";
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (url.includes("api.datacite.org") || url.includes("/https://arxiv.org/abs/")) return new Response("Unavailable", { status: 503 });
+    if (url.includes("api.alphaxiv.org")) return Response.json(alphaRecord);
+    assert.ok(url.includes("arxiv-txt.org"));
+    return new Response(`# Title\nCorrect TXT Paper\n# Authors\nCorrect Author\n# Abstract\nCorrect abstract\n# Categories\ncs.SE\n# Publication Details\n- arXiv ID: ${requestedId}v1\n# BibTeX\n`);
+  });
+  assert.equal((await fetchArxivPaper(requestedId)).title, "Correct TXT Paper");
+});
+
+test("alphaXiv likes use public_total_votes, including zero, and reject net votes, visits or another paper", () => {
+  const value = { ...alphaRecord, metrics: { public_total_votes: 0, total_votes: 26, visits_count: { all: 939 } } };
+  assert.equal(parseAlphaXivLikes(value, "2608.05594v2"), 0);
+  assert.equal(parseAlphaXivLikes(null, "2608.05594"), null);
+  for (const invalid of [{ ...value, universal_paper_id: "2303.08774" }, { ...value, metrics: { total_votes: 26 } },
+    ...[null, -1, 0.5, "0", NaN].map((count) => ({ ...value, metrics: { public_total_votes: count } }))]) {
+    assert.throws(() => parseAlphaXivLikes(invalid, "2608.05594"));
+  }
+});
+
+test("metadata and likes share a public preview request across versions and refresh after fifteen minutes", async (t) => {
+  let now = Date.now(), calls = 0;
+  t.mock.method(Date, "now", () => now);
+  const previewId = "2401.99099";
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls++;
+    assert.equal(url, `https://api.alphaxiv.org/papers/v3/${previewId}/preview`);
+    assert.equal(options.credentials, "omit");
+    return Response.json({ ...alphaRecord, universal_paper_id: previewId, canonical_id: `${previewId}v2`,
+      metrics: { public_total_votes: calls - 1 } });
+  });
+  const [preview, likes] = await Promise.all([fetchAlphaXivPreview(`${previewId}v1`), fetchAlphaXivLikes(`${previewId}v2`)]);
+  assert.equal(parseAlphaXivPaper(preview, previewId).title, alphaRecord.title);
+  assert.equal(likes, 0); assert.equal(calls, 1);
+  now += 15 * 60 * 1000 + 1;
+  assert.equal(await fetchAlphaXivLikes(previewId), 1);
+  assert.equal((await fetchAlphaXivPreview(previewId)).metrics.public_total_votes, 1);
+  assert.equal(calls, 2);
 });

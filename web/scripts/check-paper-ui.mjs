@@ -10,6 +10,18 @@ const browser = await chromium.launch({
 });
 try {
   const context = await browser.newContext({ permissions: ["clipboard-read", "clipboard-write"] });
+  await context.route("https://api.alphaxiv.org/**", (route) => route.fulfill({ json: {
+    universal_paper_id: route.request().url().includes("1706.03762") ? "1706.03762" : "2608.15875",
+    metrics: { public_total_votes: 90 },
+  } }));
+  await context.route("https://api.openalex.org/**", (route) => route.fulfill({ json: { results: [] } }));
+  await context.route("https://api.semanticscholar.org/**", (route) => {
+    const requested = new URL(route.request().url()).pathname.split("/").at(-1);
+    return route.fulfill({ json: {
+      paperId: /^[a-f0-9]{40}$/i.test(requested) ? requested : "a".repeat(40), citationCount: 1234,
+      externalIds: { ArXiv: route.request().url().includes("1706.03762") || requested === "204e3073870fae3d05bcbc2f6a8e263d9b72e776" ? "1706.03762" : "2608.15875" },
+    } });
+  });
   await context.route("https://api.microlink.io/**", (route) => route.abort());
   let historyUnavailable = false;
   await context.route('https://api.datacite.org/**', async (route) => {
@@ -75,7 +87,8 @@ try {
   const list = page.getByTestId("paper-tools");
   const tldr = page.getByTestId("paper-tldr");
   await tldr.getByText("The model generalizes across robots.", { exact: true }).waitFor();
-  assert.equal(await tldr.locator("a").count(), 0);
+  assert.equal(await tldr.locator("a").count(), 1);
+  assert.equal(await tldr.locator("h2 a").getAttribute("href"), "https://arxivtldr.org/abs/2608.15875");
   assert.doesNotMatch(await tldr.innerText(), /arxivtldr\.org/);
   assert.doesNotMatch(await tldr.innerText(), /SECRET|主要贡献|为什么这很重要|Semantic Scholar|Zotero/);
   assert.deepEqual(await list.locator("h3").allTextContents(), ["讨论", "AIChat", "检索", "翻译"]);
@@ -90,7 +103,12 @@ try {
   assert.equal(await list.locator('[data-tool-id="pubpeer"] a').getAttribute('href'),'https://www.pubpeer.com/search?q=2608.15875');
   assert.equal(await list.locator('[data-tool-id="prereview"] a').getAttribute('href'),'https://prereview.org/preprints/doi-10.48550-arxiv.2608.15875/write-a-prereview');
   assert.equal(await list.locator('[data-tool-id="gotit"] a').getAttribute('href'),'https://gotit.pub/view/2608.15875');
-  assert.equal(await page.getByTestId('paper-document-actions').getByRole('link',{name:'arXiv 外部引用（Trackbacks）',exact:true}).getAttribute('href'),'https://arxiv.org/tb/2608.15875');
+  const documents = page.getByTestId('paper-document-actions');
+  assert.deepEqual(await documents.locator(':scope > div > a, :scope > div > button').allTextContents(), ['PDF', 'HTML', 'MD', 'TeX', 'TB', 'BibTex']);
+  assert.equal(await documents.getByRole('link',{name:'arXiv 外部引用（Trackbacks）',exact:true}).getAttribute('href'),'https://arxiv.org/tb/2608.15875');
+  const tex = documents.getByRole('link', {name:'TeX 源码', exact:true});
+  assert.equal(await tex.getAttribute('href'), 'https://arxiv.org/src/2608.15875');
+  assert.equal(await tex.getAttribute('title'), 'TeX 源码');
   assert.equal(await list.locator('#paper-tools-discussion [data-tool-id="hf-papers"] a').getAttribute('href'),'https://huggingface.co/papers/2608.15875');
   assert.equal(await list.locator('[data-tool-id="researchhub"]').count(),0);
   assert.equal(await list.locator('[data-tool-id="openalex"] a').getAttribute('href'),'https://openalex.org/works?filter=default.search:Example%20Paper');
@@ -119,21 +137,17 @@ try {
     ["alphaxiv", "https://www.alphaxiv.org/abs/2608.15875"],
     ["hjfy", "https://hjfy.top/arxiv/2608.15875"],
     ["papers-cool", "https://papers.cool/arxiv/2608.15875"],
-    ["arxivtldr", "https://arxivtldr.org/abs/2608.15875"],
-    ["google-scholar", "https://scholar.google.com/scholar_lookup?arxiv_id=2608.15875"],
     ["emergent-mind", "https://www.emergentmind.com/papers/2608.15875"],
-    ["arxivxplorer", "https://arxivxplorer.com/?q=2608.15875"],
     ["openreview", "https://openreview.net/search?term=Example%20Paper"],
     ["connected-papers", "https://www.connectedpapers.com/api/redirect/arxiv/2608.15875"],
-    ["semantic-scholar", "https://www.semanticscholar.org/search?q=Example%20Paper"],
+    ["pith", "https://pith.science/paper/2608.15875"],
   ]) {
     assert.equal(await quick.locator(`[data-quick-tool="${id}"]`).getAttribute("href"), href);
   }
   assert.deepEqual(await quick.locator("[data-quick-tool]").evaluateAll((items) => items.map((el) => el.dataset.quickTool)), [
-    "alphaxiv", "hjfy", "papers-cool", "arxivtldr",
-    "emergent-mind", "arxivxplorer", "openreview", "connected-papers",
-    "semantic-scholar", "google-scholar",
+    "alphaxiv", "hjfy", "papers-cool", "emergent-mind", "openreview", "connected-papers", "pith",
   ]);
+  assert.equal(await quick.locator('[data-quick-tool="arxivtldr"], [data-quick-tool="arxivxplorer"], [data-quick-tool="semantic-scholar"], [data-quick-tool="google-scholar"]').count(), 0);
   assert.equal(await quick.locator('[data-quick-tool="talk2arxiv"], [data-quick-tool="arxivisual"]').count(),0);
   assert.equal(await quick.locator('[data-quick-tool="github"]').count(),0);
   assert.ok((await quick.boundingBox()).y < (await page.locator("h1").boundingBox()).y);
@@ -143,8 +157,14 @@ try {
   assert.equal(await quick.getByRole("button", { name: "复制 ID", exact: true }).count(), 0);
   assert.ok(await quick.locator('a[href="https://arxiv.org/abs/2608.15875"]').evaluate((el) => Number(getComputedStyle(el).fontWeight) >= 700));
   const metaBlocks = page.getByTestId("paper-metadata").locator(":scope > *");
-  assert.equal(await metaBlocks.count(), 4);
+  assert.equal(await metaBlocks.count(), 6);
   assert.ok(await metaBlocks.evaluateAll((items) => items.every((el) => getComputedStyle(el).borderTopWidth === "1px" && el.getBoundingClientRect().height === 36)));
+  assert.equal((await page.getByTestId("paper-citations").innerText()).replace(/\s+/g, " "), "引用 1,234");
+  assert.match(await page.getByTestId("paper-citations").getAttribute("title"), /Semantic Scholar/);
+  assert.equal(await page.getByTestId("paper-citations").getAttribute("href"), `https://www.semanticscholar.org/paper/${"a".repeat(40)}`);
+  assert.equal(await page.getByTestId("paper-citations").evaluate((el) => el.previousElementSibling?.getAttribute("data-testid")), "paper-version");
+  assert.equal((await page.getByTestId("paper-likes").innerText()).replace(/\s+/g, " "), "点赞 90");
+  assert.equal(await page.getByTestId("paper-likes").getAttribute("href"), "https://www.alphaxiv.org/abs/2608.15875");
   await page.locator(".paper-math .katex").first().waitFor();
   assert.equal(await page.locator(".paper-math .katex").count(), 2);
   assert.equal(await page.locator(".katex-error").count(), 0);
@@ -162,8 +182,9 @@ try {
   assert.equal(await quick.locator('[data-quick-tool="xiaohongshu"], [data-quick-tool="x-search"]').count(), 0);
   assert.equal(await bottom.locator('[data-social-tool="xiaohongshu"]').getAttribute('href'), 'https://www.xiaohongshu.com/search_result?keyword=Example%20Paper');
   assert.equal(await bottom.locator('[data-social-tool="x-search"]').getAttribute('href'), 'https://x.com/search?q=Example%20Paper');
-  assert.deepEqual(await bottom.locator('[data-social-tool]').evaluateAll(items=>items.map(el=>el.dataset.socialTool)),['xiaohongshu','x-search','reddit-search','zhihu-search','hf-papers']);
+  assert.deepEqual(await bottom.locator('[data-social-tool]').evaluateAll(items=>items.map(el=>el.dataset.socialTool)),['xiaohongshu','x-search','reddit-search','zhihu-search','hf-papers','google-scholar']);
   assert.equal(await bottom.locator('[data-social-tool="hf-papers"]').getAttribute('href'),'https://huggingface.co/papers/2608.15875');
+  assert.equal(await bottom.locator('[data-social-tool="google-scholar"]').getAttribute('href'),'https://scholar.google.com/scholar_lookup?arxiv_id=2608.15875');
   for(const [id,url] of [['reddit-search','https://www.reddit.com/search/?q=Example%20Paper'],['zhihu-search','https://www.zhihu.com/search?type=content&q=Example%20Paper']]) {
     assert.equal(await bottom.locator(`[data-social-tool="${id}"]`).getAttribute('href'),url);
     assert.equal(await list.locator(`[data-tool-id="${id}"] a`).getAttribute('href'),url);
@@ -200,6 +221,7 @@ try {
   }
   await page.getByRole('button', { name: 'Toggle language' }).click();
   assert.equal(await page.getByRole('heading', { name: 'Abstract', exact: true }).count(), 1);
+  assert.equal(await documents.getByRole('link', {name:'TeX source', exact:true}).getAttribute('title'), 'TeX source');
   assert.equal(await aiSection.getByText('Question', { exact: true }).count(), 0);
   const englishPopupPromise = page.waitForEvent('popup');
   await aiSection.getByRole('link', { name: 'ChatGPT', exact: true }).click();
@@ -251,8 +273,8 @@ try {
       const box = el.getBoundingClientRect(); return { x: box.x, y: box.y };
     }));
     assert.ok(iconPositions.every((pos, i) => pos.y === iconPositions[0].y && (!i || pos.x > iconPositions[i - 1].x)));
-    await toolbar.locator('[data-quick-tool="google-scholar"]').scrollIntoViewIfNeeded();
-    assert.equal(await toolbar.locator('[data-quick-tool="google-scholar"]').isVisible(), true);
+    await toolbar.locator('[data-quick-tool="pith"]').scrollIntoViewIfNeeded();
+    assert.equal(await toolbar.locator('[data-quick-tool="pith"]').isVisible(), true);
     assert.ok(Math.abs(thirdPartyBox.x + thirdPartyBox.width - toolbarBox.x - toolbarBox.width) < 2);
     if (width > 640) {
       const localBox = await page.getByTestId("paper-document-actions").boundingBox();
@@ -264,6 +286,8 @@ try {
     assert.ok(Math.abs(aiBox.x - bottomBox.x) < 2);
     assert.ok(Math.abs(socialBox.x + socialBox.width - bottomBox.x - bottomBox.width) < 2);
     if (width > 640) assert.ok(aiBox.x + aiBox.width < socialBox.x);
+    await bottom.locator('[data-social-tool="google-scholar"]').scrollIntoViewIfNeeded();
+    assert.equal(await bottom.locator('[data-social-tool="google-scholar"]').isVisible(), true);
     const metaY = await page.getByTestId("paper-metadata").locator(":scope > *").evaluateAll((elements) => elements.map((el) => {
       const rect = el.getBoundingClientRect();
       return rect.y + rect.height / 2;
@@ -302,7 +326,7 @@ try {
   assert.equal(await legacy.locator('article[data-tool-id="paperdance"]').count(),0);
   assert.equal(await legacy.evaluate(()=>JSON.parse(localStorage.getItem('arxiv-hub')).state.history[0].title),'Saved title');
   await legacyContext.close();
-  console.log("PASS: fixed Abstract (ZH/EN), enlarged full text, no question editor, compact prompt clipboard/popup/failure, Scholar last, toolbar, dates, favorites, desktop/mobile.");
+  console.log("PASS: fixed Abstract (ZH/EN), enlarged full text, no question editor, compact prompt clipboard/popup/failure, TLDR title source link, Pith toolbar, Scholar last in bottom links, dates, favorites, desktop/mobile.");
 } finally {
   await browser.close();
 }

@@ -22,6 +22,9 @@ try {
   if (!live) {
     await context.route("https://api.microlink.io/**", (route) => route.abort());
     await context.route("https://r.jina.ai/**", (route) => route.abort());
+    await context.route("https://api.semanticscholar.org/**", (route) => route.abort());
+    await context.route("https://api.openalex.org/**", (route) => route.abort());
+    await context.route("https://api.alphaxiv.org/**", (route) => route.abort());
     await context.route("https://api.datacite.org/**", (route) => route.fulfill({
       json: { data: { attributes: {
         doi: "10.48550/arxiv.2303.08774",
@@ -74,8 +77,10 @@ try {
     "https://arxiv.org/pdf/2303.08774",
     "https://arxiv.org/html/2303.08774",
     "https://www.arxiv2md.org/api/markdown?url=2303.08774",
+    "https://arxiv.org/src/2303.08774",
     "https://arxiv.org/tb/2303.08774",
   ]);
+  assert.deepEqual(await documents.locator(":scope > div > a, :scope > div > button").allTextContents(), ["PDF", "HTML", "MD", "TeX", "TB", "BibTex"]);
   assert.equal(await documents.getByRole("link", { name: "Markdown 全文", exact: true }).innerText(), "MD");
   await page.waitForFunction(() => document.querySelector('[data-testid="paper-tldr"]')?.getAttribute("aria-busy") === "false");
   if (live) {

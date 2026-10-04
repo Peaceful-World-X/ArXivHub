@@ -1,3 +1,5 @@
+import { fetchAlphaXivPreview } from "./alphaxiv.ts";
+
 export const ARXIV_ID_RE =
   /(?:arXiv:)?(\d{4}\.\d{4,5})(?:v\d+)?/i;
 export const ARXIV_OLD_RE =
@@ -195,11 +197,15 @@ export function bibtexFor(paper: ArxivPaper): string {
 }`;
 }
 
-// DataCite supports browser CORS; use the TXT proxy only when DOI metadata is unavailable.
+// DataCite and alphaXiv support browser CORS; keep TXT as the final metadata fallback.
 export async function fetchArxivPaper(id: string): Promise<ArxivPaper> {
   const dataCite = await fetchDataCite(id).catch(() => null);
   const registeredPaper = parseDataCitePaper(dataCite, id);
   if (registeredPaper) return registeredPaper;
+
+  const preview = await fetchAlphaXivPreview(id).catch(() => null);
+  const alphaPaper = parseAlphaXivPaper(preview, id);
+  if (alphaPaper) return alphaPaper;
 
   const url = `https://r.jina.ai/http://www.arxiv-txt.org/abs/${encodeURIComponent(id)}`;
   const historyPromise = fetchArxivSubmissionHistory(id, dataCite).catch(() => null);
@@ -278,6 +284,35 @@ function dataCiteAttributes(value: unknown, id: string): Record<string, unknown>
   if (!isRecord(value) || !isRecord(value.data) || !isRecord(value.data.attributes)) return null;
   const attrs = value.data.attributes;
   return String(attrs.doi).toLowerCase() === arxivDoi(id).toLowerCase() ? attrs : null;
+}
+
+export function parseAlphaXivPaper(value: unknown, id: string): ArxivPaper | null {
+  if (!isRecord(value) || typeof value.universal_paper_id !== "string" ||
+      stripVersion(value.universal_paper_id).toLowerCase() !== stripVersion(id).toLowerCase()) return null;
+  const title = typeof value.title === "string" ? value.title.trim() : "";
+  const summary = typeof value.abstract === "string" ? value.abstract.trim() : "";
+  if (!title || !summary) return null;
+  const canonicalId = typeof value.canonical_id === "string" ? value.canonical_id.trim() : "";
+  if (canonicalId && (!/^(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?\/\d{7})(?:v[1-9]\d*)?$/i.test(canonicalId) ||
+      stripVersion(canonicalId).toLowerCase() !== stripVersion(id).toLowerCase())) return null;
+  const authors = Array.isArray(value.authors) ? value.authors.flatMap((name) =>
+    typeof name === "string" && name.trim() ? [{ name: name.trim() }] : []) : [];
+  const categories = Array.isArray(value.topics) ? value.topics.filter((topic): topic is string =>
+    typeof topic === "string" && (/^[a-z-]+\.[a-z]{2}$/i.test(topic) ||
+      /^(?:astro-ph|cond-mat|gr-qc|hep-(?:ex|lat|ph|th)|math-ph|nucl-(?:ex|th)|quant-ph)$/.test(topic))) : [];
+  const date = (raw: unknown) => {
+    const stamp = typeof raw === "string" && raw.trim() ? Date.parse(raw) : NaN;
+    return Number.isFinite(stamp) ? new Date(stamp).toISOString() : "";
+  };
+  const published = date(value.first_publication_date);
+  const latest = date(value.publication_date);
+  const version = Number(canonicalId.match(/v([1-9]\d*)$/i)?.[1] ?? 0);
+  // updated_at is an alphaXiv platform change, not an arXiv revision date.
+  const updated = version > 1 && latest && (!published || Date.parse(latest) > Date.parse(published)) ? latest : "";
+  return {
+    id, versionId: canonicalId || id, title, summary, authors, categories, primaryCategory: categories[0] ?? "",
+    published, updated, doi: arxivDoi(id), pdfUrl: `https://arxiv.org/pdf/${id}`, absUrl: `https://arxiv.org/abs/${id}`,
+  };
 }
 
 export function parseDataCitePaper(value: unknown, id: string): ArxivPaper | null {

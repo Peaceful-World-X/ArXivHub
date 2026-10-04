@@ -1,16 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  FileText,
-  CodeXml,
-  Braces,
   UserRound,
   Tag,
   CalendarDays,
   History,
   Layers,
-  Link2,
   RefreshCw,
-  ArrowUpRight,
   Puzzle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -32,16 +27,15 @@ import { MathText } from "@/components/math-text";
 import { fetchArxivTldr } from "@/lib/arxiv-tldr";
 import { PaperAiLinks } from "@/components/paper-ai-links";
 import { InstallGuide } from "@/components/install-guide";
+import { PaperMetrics } from "@/components/paper-metrics";
 
 export const Route = createFileRoute("/p/$id")({ component: PaperPage });
 
 const QUICK_TOOLS = [
-  "alphaxiv", "hjfy", "papers-cool", "arxivtldr",
-  "emergent-mind", "arxivxplorer", "openreview", "connected-papers",
-  "semantic-scholar",
-  "google-scholar",
+  "alphaxiv", "hjfy", "papers-cool", "emergent-mind",
+  "openreview", "connected-papers", "pith",
 ].map((id) => TOOLS.find((tool) => tool.id === id)!);
-const SOCIAL_TOOLS = ["xiaohongshu", "x-search", "reddit-search", "zhihu-search", "hf-papers"].map((id) => TOOLS.find((tool) => tool.id === id)!);
+const SOCIAL_TOOLS = ["xiaohongshu", "x-search", "reddit-search", "zhihu-search", "hf-papers", "google-scholar"].map((id) => TOOLS.find((tool) => tool.id === id)!);
 const quickLinkClass = "inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-accent focus-visible:outline-2 focus-visible:outline-accent";
 
 function PaperPage() {
@@ -135,14 +129,15 @@ function PaperPage() {
 
       <header className="mt-5 rounded-[28px] border border-border bg-surface p-5 shadow-soft sm:p-8">
         <div className="paper-quick-bar" data-testid="paper-quick-bar">
-          <div className="flex flex-wrap items-center gap-3" data-testid="paper-document-actions">
+          <div className="flex max-w-full min-w-0 flex-wrap items-center gap-3" data-testid="paper-document-actions">
             <a href={`https://arxiv.org/abs/${id}`} target="_blank" rel="noreferrer" className="shrink-0 font-sans text-base font-bold text-accent no-underline sm:text-lg">arXiv:{id}</a>
-            <div className="flex items-center gap-1">
-              <a href={`https://arxiv.org/pdf/${id}`} target="_blank" rel="noreferrer" aria-label={t.pdf} title={t.pdf} className={quickLinkClass}><FileText className="size-5" /></a>
-              <a href={`https://arxiv.org/html/${id}`} target="_blank" rel="noreferrer" aria-label={t.html} title={t.html} className={quickLinkClass}><CodeXml className="size-5" /></a>
+            <div className="flex max-w-full min-w-0 items-center gap-1 overflow-x-auto">
+              <a href={`https://arxiv.org/pdf/${id}`} target="_blank" rel="noreferrer" aria-label={t.pdf} title={t.pdf} className={quickLinkClass}><span className="font-sans text-xs font-bold">PDF</span></a>
+              <a href={`https://arxiv.org/html/${id}`} target="_blank" rel="noreferrer" aria-label={t.html} title={t.html} className={quickLinkClass}><span className="font-sans text-xs font-bold">HTML</span></a>
               <a href={`https://www.arxiv2md.org/api/markdown?url=${encodeURIComponent(id)}`} target="_blank" rel="noreferrer" aria-label={t.markdown} title={t.markdown} className={quickLinkClass}><span className="font-sans text-xs font-bold">MD</span></a>
-              <a href={`https://arxiv.org/tb/${id}`} target="_blank" rel="noreferrer" aria-label={t.trackbacks} title={t.trackbacks} className={quickLinkClass}><Link2 className="size-5" /></a>
-              <Button variant="ghost" size="icon" className="rounded-full" title={t.copyBib} aria-label={t.copyBib} disabled={!paper} onClick={() => paper && void copyText(bibtexFor(paper), t.copied)}><Braces className="size-5" /></Button>
+              <a href={`https://arxiv.org/src/${id}`} target="_blank" rel="noreferrer" aria-label={t.texSource} title={t.texSource} className={quickLinkClass}><span className="font-sans text-xs font-bold">TeX</span></a>
+              <a href={`https://arxiv.org/tb/${id}`} target="_blank" rel="noreferrer" aria-label={t.trackbacks} title={t.trackbacks} className={quickLinkClass}><span className="font-sans text-xs font-bold">TB</span></a>
+              <Button variant="ghost" size="icon" className="shrink-0 rounded-full" title={t.copyBib} aria-label={t.copyBib} disabled={!paper} onClick={() => paper && void copyText(bibtexFor(paper), t.copied)}><span className="font-sans text-xs font-bold">BibTex</span></Button>
             </div>
           </div>
           <nav aria-label={t.quickLinks} className="ml-auto flex max-w-full min-w-0 items-center gap-1 overflow-x-auto py-1">
@@ -185,6 +180,7 @@ function PaperPage() {
               <Layers className="size-3.5 shrink-0" aria-hidden="true" />v{version}
             </span>
           ) : null}
+          <PaperMetrics key={id} id={id} doi={paper?.doi} title={paper?.title} metadataLoading={loading} />
         </div>
         {error ? (
           <p className="mt-4 text-sm text-accent">{t.loadError}</p>
@@ -193,13 +189,12 @@ function PaperPage() {
           <p className="mt-4 text-sm text-muted">{t.loading}</p>
         ) : null}
         <section className="mt-5 border-y border-border py-4" data-testid="paper-tldr" aria-busy={tldrLoading}>
-          <h2 className="font-display text-lg">ArXiv TLDR</h2>
+          <h2 className="font-display text-lg"><a href={`https://arxivtldr.org/abs/${id}`} target="_blank" rel="noopener noreferrer" title={t.viewOriginal} className="text-inherit no-underline hover:text-accent">ArXiv TLDR</a></h2>
           <MathText className="mt-2 text-sm leading-relaxed text-muted" text={tldrLoading ? t.arxivTldrLoading : tldr ?? (tldrError ? t.arxivTldrFailed : t.arxivTldrUnavailable)} />
           {!tldrLoading && !tldr ? (
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => setTldrAttempt((value) => value + 1)} title={t.retry} aria-label={t.retry} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-accent"><RefreshCw className="size-4" /></button>
               {tldrError ? <button type="button" onClick={() => setShowInstallGuide(true)} className="inline-flex min-h-9 items-center gap-1.5 text-sm text-accent"><Puzzle className="size-4" />{t.arxivTldrScript}</button> : null}
-              <a href={`https://arxivtldr.org/abs/${id}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1 text-sm text-accent">{t.viewOriginal}<ArrowUpRight className="size-4" /></a>
             </div>
           ) : null}
         </section>
@@ -216,7 +211,7 @@ function PaperPage() {
 
         <div className="paper-bottom-actions" data-testid="paper-bottom-actions">
           <PaperAiLinks key={id} id={id} paper={paper} tldr={tldr} />
-          <nav aria-label={lang === "zh" ? "论文讨论搜索" : "Paper discussion search"} className="flex items-center gap-1 justify-self-end">
+          <nav aria-label={lang === "zh" ? "论文讨论与检索" : "Paper discussion and search"} className="flex max-w-full min-w-0 items-center gap-1 overflow-x-auto py-1 justify-self-end">
             {SOCIAL_TOOLS.map((tool) => {
               const name = lang === "zh" ? tool.nameZh : tool.name;
               return <a key={tool.id} data-social-tool={tool.id} href={buildToolUrl(tool, ctx)} target="_blank" rel="noopener noreferrer" aria-label={name} title={name} className={quickLinkClass}><ToolIcon tool={tool} /></a>;
