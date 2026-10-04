@@ -9,9 +9,9 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(base);
   const tab = (name) => page.getByRole('button', { name, exact: true });
-  assert.match(await page.getByTestId('home-stats').innerText(), /70 个网址\s*·\s*15 个工具/);
+  assert.match(await page.getByTestId('home-stats').innerText(), /74 个网址\s*·\s*15 个工具/);
   assert.deepEqual(await page.locator('button[data-category]').evaluateAll(items=>items.map(el=>el.dataset.category)), ['all','favorites','source','ai','discussion','search','translate','discover','xiv','agent','zotero']);
-  assert.equal(await page.locator('article').count(), 85);
+  assert.equal(await page.locator('article').count(), 89);
   assert.equal(await page.locator('h1').evaluate((el) => getComputedStyle(el).fontSize), '64px');
   assert.equal(await page.locator('h1').evaluate((el) => getComputedStyle(el).letterSpacing), 'normal');
   assert.match(await page.locator('h1').evaluate((el) => getComputedStyle(el).fontFamily), /Noto Serif/);
@@ -40,7 +40,7 @@ try {
   }
   await tab('Toggle language').click();
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'en');
-  assert.match(await page.getByTestId('home-stats').innerText(), /70 websites\s*·\s*15 tools/);
+  assert.match(await page.getByTestId('home-stats').innerText(), /74 websites\s*·\s*15 tools/);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: '../screenshots/editorial-home-english-mobile.png', animations: 'disabled' });
   await tab('Toggle language').click();

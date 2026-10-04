@@ -30,7 +30,7 @@
 
 ## 网址清单
 
-共 85 个入口（70 个网址、15 个工具）；分类与[网站配置](web/src/lib/tools.ts)一致。
+共 89 个入口（74 个网址、15 个工具）；分类与[网站配置](web/src/lib/tools.ts)一致。
 
 | 分类 | 名称 | 网址 | 简介 |
 | --- | --- | --- | --- |
@@ -50,6 +50,9 @@
 | AIChat | Gist Science | <https://gist.science/> | AI 论文解读与要点摘要 |
 | AIChat | Moonlight | <https://www.themoonlight.io/zh> | AI 论文解读与问答 |
 | AIChat | Growbotics | <https://robotics.growbotics.ai/research/papers> | 机器人研究论文精选、核心方法与研究亮点解读 |
+| AIChat | DeepPaper | <https://arxiv.deeppaper.ai/> | AI 论文阅读与解读 |
+| AIChat | AI Papers | <https://aipapers.ai/> | 按标题检索 AI 论文 |
+| AIChat | AIModels.fyi | <https://www.aimodels.fyi/> | AI 论文摘要与研究解读 |
 | AIChat | Explainpaper | <https://www.explainpaper.com/> | 论文难句解释 |
 | AIChat | SciSpace | <https://scispace.com/> | 论文检索与 AI 阅读 |
 | AIChat | ChatDOC | <https://chatdoc.com/> | 带引用的文档问答 |
@@ -73,6 +76,7 @@
 | 检索 | Google Scholar | <https://scholar.google.com/> | 学术搜索与被引信息 |
 | 检索 | DBLP | <https://dblp.org/> | 计算机科学文献目录 |
 | 讨论 | SciRate | <https://scirate.com/> | 论文评分与讨论 |
+| 讨论 | Pith | <https://pith.science/> | 论文阅读与社区讨论 |
 | 讨论 | Hugging Face Papers | <https://huggingface.co/papers> | 论文讨论与模型资源 |
 | 讨论 | GotIt | <https://gotit.pub/> | 论文阅读与批注讨论 |
 | 讨论 | PREreview | <https://prereview.org/> | 预印本开放评审 |

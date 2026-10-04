@@ -31,6 +31,10 @@ Added on 2026-09-28 (favicon.im provides cached site icons when the original hos
 - Gist Science: https://gist.science/ (inline SVG favicon, saved locally).
 - Moonlight: https://www.themoonlight.io/favicon.ico
 - Growbotics: https://robotics.growbotics.ai/favicon.svg
+- Pith: https://pith.science/static/icons/pith-icon.svg (fixed the dark fill for the site's white icon background).
+- DeepPaper: https://arxiv.deeppaper.ai/icon.svg
+- AIModels.fyi: https://favicon.im/aimodels.fyi?larger=true (cached site icon; white artwork displayed on a dark background).
+- AI Papers: uses a local Lucide FileText icon; the official favicon is blocked by Cloudflare, and available caches return generic placeholders.
 - ResearchHub: https://www.researchhub.com/apple-icon.png
 - arXiv2MD: https://www.arxiv2md.org/static/favicons/favicon.ico?v=2
 - Reddit: https://www.redditstatic.com/desktop2x/img/favicon/favicon-96x96.png

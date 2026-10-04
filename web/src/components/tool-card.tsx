@@ -53,7 +53,7 @@ export function ToolIcon({ tool }: { tool: Tool }) {
   const fallbackIcon = localIcon(tool);
   const [iconSource, setIconSource] = useState(primaryIcon);
   const [loaded, setLoaded] = useState(false);
-  const GenericIcon = tool.id === "markxiv" ? FileText : tool.id === "arxiv-rss" ? Rss : null;
+  const GenericIcon = tool.id === "markxiv" || tool.id === "aipapers" ? FileText : tool.id === "arxiv-rss" ? Rss : null;
   return (
     <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white shadow-sm" aria-hidden="true">
       {tool.id === "chinarxiv" ? <span className="text-2xl leading-none">🌏</span> : GenericIcon ? <GenericIcon className="size-6 text-accent" /> : <>
@@ -69,7 +69,7 @@ export function ToolIcon({ tool }: { tool: Tool }) {
           if (iconSource !== fallbackIcon) setIconSource(fallbackIcon);
           else setLoaded(true);
         }}
-        className={cn("absolute size-7 rounded-lg object-contain", !loaded && "opacity-0")}
+        className={cn("absolute size-7 rounded-lg object-contain", tool.id === "aimodels-fyi" && "bg-ink", !loaded && "opacity-0")}
       />
       </>}
     </span>

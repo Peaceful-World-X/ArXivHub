@@ -81,7 +81,7 @@ try {
   assert.deepEqual(await list.locator("h3").allTextContents(), ["讨论", "AIChat", "检索", "翻译"]);
   assert.equal(await list.getByRole('button', {name:'原文',exact:true}).count(),0);
   assert.equal(await list.getByRole('button', {name:'讨论',exact:true}).getAttribute('aria-pressed'),'true');
-  const expectedGroups = [['discussion','讨论',10],['ai','AIChat',11],['search','检索',9],['translate','翻译',3]];
+  const expectedGroups = [['discussion','讨论',11],['ai','AIChat',17],['search','检索',9],['translate','翻译',3]];
   for(const [id,label,count] of expectedGroups) {
     assert.equal(Number(await list.getByRole('button',{name:label,exact:true}).locator('[data-category-count]').innerText()),count);
     assert.equal(await list.locator(`#paper-tools-${id} [data-tool-id]`).count(),count);
@@ -97,7 +97,7 @@ try {
   assert.equal(await list.locator('#paper-tools-ai [data-tool-id="pwc"] a').getAttribute('href'), 'https://paperswithcode.co/paper/2608.15875');
   assert.equal(await list.locator("article, input").count(), 0);
   const rows = list.locator("[data-tool-id]");
-  assert.equal(await rows.count(), 33);
+  assert.equal(await rows.count(), 40);
   for(const [id,url] of [
     ['chatpaper','https://chatpaper.com/'], ['chatdoc','https://chatdoc.com/'],
     ['explainpaper','https://www.explainpaper.com/'], ['sciencecast','https://www.sciencecast.org/'],

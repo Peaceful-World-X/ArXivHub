@@ -22,7 +22,7 @@ try {
   assert.equal(await page.locator('article').count(),6);
   assert.equal(await page.locator('article[data-tool-id="zotero-bib"] a').getAttribute('href'),'https://zbib.org/');
   await page.getByRole('button',{name:'AIChat',exact:true}).click();
-  assert.equal(await page.locator('article').count(),14);
+  assert.equal(await page.locator('article').count(),17);
   assert.equal(await page.locator('article[data-tool-id="growbotics"] a').getAttribute('href'),'https://robotics.growbotics.ai/research/papers');
   assert.equal(await page.locator('article[data-tool-id="moonlight"] a').getAttribute('href'),'https://www.themoonlight.io/zh');
   assert.equal(await page.locator('article[data-tool-id="gist-science"] a').getAttribute('href'),'https://gist.science/');
@@ -58,5 +58,5 @@ try {
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   }
   assert.deepEqual(errors,[]);
-  console.log('PASS: Agent/source categories; fourteen AIChat tools; Gist Science, Moonlight and Growbotics home/paper links; discovery includes Emergent Mind and IArxiv; removed entries absent; title/TLDR math; desktop/mobile.');
+  console.log('PASS: Agent/source categories; seventeen AIChat tools; Gist Science, Moonlight and Growbotics home/paper links; discovery includes Emergent Mind and IArxiv; removed entries absent; title/TLDR math; desktop/mobile.');
 } finally {await browser.close()}
