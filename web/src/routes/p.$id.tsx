@@ -15,6 +15,7 @@ import { ToolIcon } from "@/components/tool-card";
 import { Button } from "@/components/ui/button";
 import {
   bibtexFor,
+  arxivDoi,
   formatDate,
   fromRouteId,
   fetchArxivPaper,
@@ -32,8 +33,8 @@ import { PaperMetrics } from "@/components/paper-metrics";
 export const Route = createFileRoute("/p/$id")({ component: PaperPage });
 
 const QUICK_TOOLS = [
-  "alphaxiv", "hjfy", "papers-cool", "emergent-mind",
-  "openreview", "connected-papers", "pith",
+  "alphaxiv", "paperlayer", "hjfy", "papers-cool", "pith",
+  "pwc", "catalyzex", "pubpeer", "openreview", "emergent-mind",
 ].map((id) => TOOLS.find((tool) => tool.id === id)!);
 const SOCIAL_TOOLS = ["xiaohongshu", "x-search", "reddit-search", "zhihu-search", "hf-papers", "google-scholar"].map((id) => TOOLS.find((tool) => tool.id === id)!);
 const quickLinkClass = "inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-accent focus-visible:outline-2 focus-visible:outline-accent";
@@ -101,6 +102,8 @@ function PaperPage() {
   );
 
   const extras = EXTRAS.filter((e) => e.paperId === id);
+  const doi = paper?.doi?.trim() || arxivDoi(id.replace(/v\d+$/i, ""));
+  const doiUrl = `https://doi.org/${encodeURIComponent(doi).replaceAll("%2F", "/")}`;
   const version = paper?.versionId.match(/v(\d+)$/)?.[1];
   const authorText = paper
     ? paper.authors.length > 1
@@ -137,6 +140,7 @@ function PaperPage() {
               <a href={`https://www.arxiv2md.org/api/markdown?url=${encodeURIComponent(id)}`} target="_blank" rel="noreferrer" aria-label={t.markdown} title={t.markdown} className={quickLinkClass}><span className="font-sans text-xs font-bold">MD</span></a>
               <a href={`https://arxiv.org/src/${id}`} target="_blank" rel="noreferrer" aria-label={t.texSource} title={t.texSource} className={quickLinkClass}><span className="font-sans text-xs font-bold">TeX</span></a>
               <a href={`https://arxiv.org/tb/${id}`} target="_blank" rel="noreferrer" aria-label={t.trackbacks} title={t.trackbacks} className={quickLinkClass}><span className="font-sans text-xs font-bold">TB</span></a>
+              <a href={doiUrl} target="_blank" rel="noopener noreferrer" aria-label="DOI" title={`DOI: ${doi}`} className={quickLinkClass}><span className="font-sans text-xs font-bold">DOI</span></a>
               <Button variant="ghost" size="icon" className="shrink-0 rounded-full" title={t.copyBib} aria-label={t.copyBib} disabled={!paper} onClick={() => paper && void copyText(bibtexFor(paper), t.copied)}><span className="font-sans text-xs font-bold">BibTex</span></Button>
             </div>
           </div>

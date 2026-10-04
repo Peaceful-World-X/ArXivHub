@@ -28,3 +28,17 @@ test('existing ID and title-search URL generation is preserved', () => {
   assert.equal(buildToolUrl(TOOLS.find((tool) => tool.id === 'gist-science'), ctx), 'https://gist.science/zh/paper/2608.05594');
   assert.equal(buildToolUrl(TOOLS.find((tool) => tool.id === 'openreview'), ctx), 'https://openreview.net/search?term=Vision%20%26%20Action');
 });
+
+test('CatalyzeX code links follow title slug examples and fall back to search without a slug', () => {
+  const tool = TOOLS.find((tool) => tool.id === 'catalyzex');
+  for (const [title, slug] of [
+    ['Attention Is All You Need', 'attention-is-all-you-need'],
+    ['RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control', 'rt-2-vision-language-action-models-transfer'],
+    ['OpenVLA: An Open-Source Vision-Language-Action Model', 'openvla-an-open-source-vision-language-action'],
+    ['$π_0$: A Vision-Language-Action Flow Model for General Robot Control', '0-a-vision-language-action-flow-model-for'],
+    [String.raw`$\pi_0$: A Vision-Language-Action Flow Model for General Robot Control`, '0-a-vision-language-action-flow-model-for'],
+    ['GigaBrain-0.7: Scaling Embodied Foundation Models to Emergent Capabilities with a Three-System Architecture', 'gigabrain-0-7-scaling-embodied-foundation'],
+  ]) assert.equal(buildToolUrl(tool, { id: '2608.15875', title }), `https://www.catalyzex.com/paper/${slug}/code`);
+  assert.equal(buildToolUrl(tool, { id: '2608.15875' }), 'https://www.catalyzex.com/s/2608.15875');
+  assert.equal(buildToolUrl(tool, { id: '2608.15875', title: '研究' }), `https://www.catalyzex.com/s/${encodeURIComponent('研究')}`);
+});

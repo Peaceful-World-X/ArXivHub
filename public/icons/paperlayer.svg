@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Paperlayer">
+  <defs>
+    <clipPath id="pl-under">
+      <rect x="-13" y="-13" width="26" height="26" rx="7.5" transform="translate(32,39.5) scale(1,0.6) rotate(45)"/>
+    </clipPath>
+  </defs>
+  <!-- deep layer -->
+  <rect x="-13" y="-13" width="26" height="26" rx="7.5" fill="#2456ce" transform="translate(32,39.5) scale(1,0.6) rotate(45)"/>
+  <!-- top layer -->
+  <rect x="-13" y="-13" width="26" height="26" rx="7.5" fill="#a9c6f0" transform="translate(32,24.5) scale(1,0.6) rotate(45)"/>
+  <!-- overlap: top-over-deep blend, faked with a clipped mid-tone so no real transparency is needed -->
+  <g clip-path="url(#pl-under)">
+    <rect x="-13" y="-13" width="26" height="26" rx="7.5" fill="#6f93e4" transform="translate(32,24.5) scale(1,0.6) rotate(45)"/>
+  </g>
+</svg>

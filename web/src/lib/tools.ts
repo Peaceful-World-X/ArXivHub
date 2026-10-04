@@ -592,6 +592,49 @@ export const TOOLS: Tool[] = [
     langs: ["en"],
   },
   {
+    id: "opentrain", name: "OpenTrain AI", nameZh: "OpenTrain AI",
+    blurb: "Explore paper summaries, implementation resources, and technical artifacts.",
+    blurbZh: "浏览论文解读、实现资源与相关技术资料。",
+    category: "ai", kind: "paper",
+    url: "https://www.opentrain.ai/papers/arxiv-{id}", home: "https://www.opentrain.ai/papers/",
+    icon: "icons/opentrain.png", probe: "verified",
+    probeNote: "The arXiv ID route redirects to the matching paper page.",
+    probeNoteZh: "arXiv ID 入口自动跳转到对应论文页。",
+    langs: ["en"],
+  },
+  {
+    id: "paperlayer", name: "Paperlayer", nameZh: "Paperlayer",
+    blurb: "Read Chinese AI explanations and summaries of arXiv papers.",
+    blurbZh: "阅读 arXiv 论文的中文 AI 解读与摘要。",
+    category: "ai", kind: "paper",
+    url: "https://paperlayer.ai/abs/{id}/zh", home: "https://paperlayer.ai/",
+    icon: "icons/paperlayer.svg", probe: "verified",
+    probeNote: "The versionless ID redirects to the matching Chinese paper page.",
+    probeNoteZh: "按 arXiv ID 打开对应版本的中文论文页。",
+    langs: ["en", "zh"],
+  },
+  {
+    id: "arcxiv", name: "ArcXiv", nameZh: "ArcXiv",
+    blurb: "Discover, read, and save arXiv papers.",
+    blurbZh: "发现、阅读和收藏 arXiv 论文。",
+    category: "discover", kind: "hub",
+    url: "https://arcxiv.org/", home: "https://arcxiv.org/",
+    icon: "icons/arcxiv.svg", probe: "hub-only",
+    probeNote: "Public paper discovery homepage is reachable.", probeNoteZh: "论文发现首页可访问。",
+    langs: ["en"],
+  },
+  {
+    id: "catalyzex", name: "CatalyzeX", nameZh: "CatalyzeX",
+    blurb: "Find open-source code implementations of research papers.",
+    blurbZh: "查找论文对应的开源代码实现。",
+    category: "search", kind: "search",
+    url: "https://www.catalyzex.com/paper/{titleSlug}/code", home: "https://www.catalyzex.com/",
+    icon: "icons/catalyzex.jpg", probe: "cf",
+    probeNote: "Title-slug match, not a stable arXiv ID link. Probe received HTTP 403.",
+    probeNoteZh: "按标题 Slug 匹配代码页，非 arXiv ID 直达；当前探测返回 403。",
+    langs: ["en"],
+  },
+  {
     id: "explainpaper",
     name: "Explainpaper",
     nameZh: "Explainpaper",
@@ -1248,7 +1291,26 @@ export type ToolContext = {
   doi?: string;
 };
 
+export function catalyzeXSlug(title: string): string {
+  let slug = title.replace(/\\[a-zA-Z]+/g, "").toLowerCase().normalize("NFKD")
+    .replace(/[^\p{ASCII}]/gu, "").replace(/\./g, "-").replace(/[^a-z0-9\s-]/g, "").trim()
+    .replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+  if (slug.length > 45) {
+    const atWordBoundary = slug[45] === "-";
+    slug = slug.slice(0, 45);
+    if (!atWordBoundary) {
+      const lastDash = slug.lastIndexOf("-");
+      slug = lastDash > 0 ? slug.slice(0, lastDash) : "";
+    }
+  }
+  return slug;
+}
+
 export function buildToolUrl(tool: Tool, ctx: ToolContext): string {
+  if (tool.id === "catalyzex") {
+    const slug = catalyzeXSlug(ctx.title ?? "");
+    return slug ? tool.url.replace("{titleSlug}", slug) : `${tool.home}s/${encodeURIComponent(ctx.title?.trim() || ctx.id)}`;
+  }
   // Moonlight 使用标题路径；清理 LaTeX 命令和标点，无标题时保留检索入口。
   if (tool.id === "moonlight") {
     const slug = (ctx.title ?? "")

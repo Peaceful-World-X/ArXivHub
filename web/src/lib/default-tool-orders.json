@@ -33,6 +33,7 @@
     "semantic-scholar",
     "google-scholar",
     "pwc",
+    "catalyzex",
     "scholar-inbox",
     "dblp",
     "openreview",
@@ -70,6 +71,7 @@
     "sportrxiv",
     "edarxiv",
     "philarchive",
+    "paperlayer",
     "iarxiv",
     "pith",
     "gist-science",
@@ -79,6 +81,8 @@
     "aipapers",
     "aimodels-fyi",
     "sciencecast",
+    "opentrain",
+    "arcxiv",
     "litmaps",
     "github",
     "openalex",
@@ -109,13 +113,15 @@
     "arxivisual",
     "explainpaper",
     "scispace",
+    "paperlayer",
     "gist-science",
     "moonlight",
     "growbotics",
     "deeppaper",
     "aipapers",
     "aimodels-fyi",
-    "sciencecast"
+    "sciencecast",
+    "opentrain"
   ],
   "discussion": [
     "openreview",
@@ -138,6 +144,7 @@
     "dblp",
     "arxivxplorer",
     "arxiv-bshk",
+    "catalyzex",
     "litmaps",
     "github"
   ],
@@ -156,7 +163,8 @@
     "inciteful",
     "paperscape",
     "papermatch",
-    "scholar-inbox"
+    "scholar-inbox",
+    "arcxiv"
   ],
   "xiv": [
     "preprints",
@@ -199,10 +207,10 @@
   ],
   "favorites": [
     "alphaxiv",
+    "paperlayer",
     "hjfy",
     "papers-cool",
     "arxivdaily",
-    "paperdance",
-    "arxivtldr"
+    "paperdance"
   ]
 }

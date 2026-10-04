@@ -79,8 +79,11 @@ try {
     "https://www.arxiv2md.org/api/markdown?url=2303.08774",
     "https://arxiv.org/src/2303.08774",
     "https://arxiv.org/tb/2303.08774",
+    "https://doi.org/10.48550/arXiv.2303.08774",
   ]);
-  assert.deepEqual(await documents.locator(":scope > div > a, :scope > div > button").allTextContents(), ["PDF", "HTML", "MD", "TeX", "TB", "BibTex"]);
+  assert.deepEqual(await documents.locator(":scope > div > a, :scope > div > button").allTextContents(), ["PDF", "HTML", "MD", "TeX", "TB", "DOI", "BibTex"]);
+  assert.equal(await documents.getByRole("link", { name: "DOI", exact: true }).getAttribute("href"), "https://doi.org/10.48550/arXiv.2303.08774");
+  assert.equal(await page.getByTestId("paper-quick-bar").getByRole("navigation").getByRole("link", { name: "DOI", exact: true }).count(), 0);
   assert.equal(await documents.getByRole("link", { name: "Markdown 全文", exact: true }).innerText(), "MD");
   await page.waitForFunction(() => document.querySelector('[data-testid="paper-tldr"]')?.getAttribute("aria-busy") === "false");
   if (live) {

@@ -30,7 +30,7 @@
 
 ## 网址清单
 
-共 89 个入口（74 个网址、15 个工具）；分类与[网站配置](web/src/lib/tools.ts)一致。
+共 93 个入口（78 个网址、15 个工具）；分类与[网站配置](web/src/lib/tools.ts)一致。
 
 | 分类 | 名称 | 网址 | 简介 |
 | --- | --- | --- | --- |
@@ -47,6 +47,8 @@
 | AIChat | arXivisual | <https://arxivisual.org/> | 论文可视化讲解 |
 | AIChat | Talk2Arxiv | <https://www.talk2arxiv.org/> | 论文智能问答 |
 | AIChat | ScienceCast | <https://www.sciencecast.org/> | 科研论文视频讲解 |
+| AIChat | OpenTrain AI | <https://www.opentrain.ai/papers/> | 论文解读与实现资源 |
+| AIChat | Paperlayer | <https://paperlayer.ai/> | 中文 AI 论文解读 |
 | AIChat | Gist Science | <https://gist.science/> | AI 论文解读与要点摘要 |
 | AIChat | Moonlight | <https://www.themoonlight.io/zh> | AI 论文解读与问答 |
 | AIChat | Growbotics | <https://robotics.growbotics.ai/research/papers> | 机器人研究论文精选、核心方法与研究亮点解读 |
@@ -72,6 +74,7 @@
 | 检索 | Litmaps | <https://app.litmaps.com/preview> | 引文地图与文献发现 |
 | 检索 | Semantic Scholar | <https://www.semanticscholar.org/> | 学术检索与引用分析 |
 | 检索 | GitHub Search | <https://github.com/search> | 按论文 ID 搜索代码 |
+| 检索 | CatalyzeX | <https://www.catalyzex.com/> | 查找论文对应的开源代码实现 |
 | 检索 | OpenAlex | <https://openalex.org/> | 开放学术目录检索 |
 | 检索 | Google Scholar | <https://scholar.google.com/> | 学术搜索与被引信息 |
 | 检索 | DBLP | <https://dblp.org/> | 计算机科学文献目录 |
@@ -87,6 +90,7 @@
 | 讨论 | Reddit 搜索 | <https://www.reddit.com/> | Reddit 论文讨论搜索 |
 | 讨论 | 知乎搜索 | <https://www.zhihu.com/> | 知乎论文解读搜索 |
 | 发现 | IArxiv | <https://iarxiv.org/> | 论文发现，需登录 |
+| 发现 | ArcXiv | <https://arcxiv.org/> | 发现与收藏 arXiv 论文 |
 | 发现 | ArXiv Daily | <https://www.arxivdaily.com/> | 每日论文与中文摘要 |
 | 发现 | PaperDance | <https://paperdance.org/> | 图文速览论文 |
 | 发现 | Emergent Mind | <https://www.emergentmind.com/> | AI 摘要与研究追踪 |

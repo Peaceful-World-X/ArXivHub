@@ -94,7 +94,7 @@ try {
   assert.deepEqual(await list.locator("h3").allTextContents(), ["讨论", "AIChat", "检索", "翻译"]);
   assert.equal(await list.getByRole('button', {name:'原文',exact:true}).count(),0);
   assert.equal(await list.getByRole('button', {name:'讨论',exact:true}).getAttribute('aria-pressed'),'true');
-  const expectedGroups = [['discussion','讨论',11],['ai','AIChat',17],['search','检索',9],['translate','翻译',3]];
+  const expectedGroups = [['discussion','讨论',11],['ai','AIChat',19],['search','检索',10],['translate','翻译',3]];
   for(const [id,label,count] of expectedGroups) {
     assert.equal(Number(await list.getByRole('button',{name:label,exact:true}).locator('[data-category-count]').innerText()),count);
     assert.equal(await list.locator(`#paper-tools-${id} [data-tool-id]`).count(),count);
@@ -104,8 +104,11 @@ try {
   assert.equal(await list.locator('[data-tool-id="prereview"] a').getAttribute('href'),'https://prereview.org/preprints/doi-10.48550-arxiv.2608.15875/write-a-prereview');
   assert.equal(await list.locator('[data-tool-id="gotit"] a').getAttribute('href'),'https://gotit.pub/view/2608.15875');
   const documents = page.getByTestId('paper-document-actions');
-  assert.deepEqual(await documents.locator(':scope > div > a, :scope > div > button').allTextContents(), ['PDF', 'HTML', 'MD', 'TeX', 'TB', 'BibTex']);
+  assert.deepEqual(await documents.locator(':scope > div > a, :scope > div > button').allTextContents(), ['PDF', 'HTML', 'MD', 'TeX', 'TB', 'DOI', 'BibTex']);
   assert.equal(await documents.getByRole('link',{name:'arXiv 外部引用（Trackbacks）',exact:true}).getAttribute('href'),'https://arxiv.org/tb/2608.15875');
+  const doiLink = documents.getByRole('link', {name:'DOI', exact:true});
+  assert.equal(await doiLink.getAttribute('href'), 'https://doi.org/10.48550/arXiv.2608.15875');
+  assert.equal(await doiLink.getAttribute('title'), 'DOI: 10.48550/arXiv.2608.15875');
   const tex = documents.getByRole('link', {name:'TeX 源码', exact:true});
   assert.equal(await tex.getAttribute('href'), 'https://arxiv.org/src/2608.15875');
   assert.equal(await tex.getAttribute('title'), 'TeX 源码');
@@ -115,7 +118,7 @@ try {
   assert.equal(await list.locator('#paper-tools-ai [data-tool-id="pwc"] a').getAttribute('href'), 'https://paperswithcode.co/paper/2608.15875');
   assert.equal(await list.locator("article, input").count(), 0);
   const rows = list.locator("[data-tool-id]");
-  assert.equal(await rows.count(), 40);
+  assert.equal(await rows.count(), 43);
   for(const [id,url] of [
     ['chatpaper','https://chatpaper.com/'], ['chatdoc','https://chatdoc.com/'],
     ['explainpaper','https://www.explainpaper.com/'], ['sciencecast','https://www.sciencecast.org/'],
@@ -135,19 +138,25 @@ try {
   const quick = page.getByTestId("paper-quick-bar");
   for (const [id, href] of [
     ["alphaxiv", "https://www.alphaxiv.org/abs/2608.15875"],
+    ["paperlayer", "https://paperlayer.ai/abs/2608.15875/zh"],
     ["hjfy", "https://hjfy.top/arxiv/2608.15875"],
     ["papers-cool", "https://papers.cool/arxiv/2608.15875"],
     ["emergent-mind", "https://www.emergentmind.com/papers/2608.15875"],
     ["openreview", "https://openreview.net/search?term=Example%20Paper"],
-    ["connected-papers", "https://www.connectedpapers.com/api/redirect/arxiv/2608.15875"],
+    ["pwc", "https://paperswithcode.co/paper/2608.15875"],
     ["pith", "https://pith.science/paper/2608.15875"],
+    ["catalyzex", "https://www.catalyzex.com/paper/example-paper/code"],
+    ["pubpeer", "https://www.pubpeer.com/search?q=2608.15875"],
   ]) {
     assert.equal(await quick.locator(`[data-quick-tool="${id}"]`).getAttribute("href"), href);
   }
   assert.deepEqual(await quick.locator("[data-quick-tool]").evaluateAll((items) => items.map((el) => el.dataset.quickTool)), [
-    "alphaxiv", "hjfy", "papers-cool", "emergent-mind", "openreview", "connected-papers", "pith",
+    "alphaxiv", "paperlayer", "hjfy", "papers-cool", "pith", "pwc", "catalyzex", "pubpeer", "openreview", "emergent-mind",
   ]);
-  assert.equal(await quick.locator('[data-quick-tool="arxivtldr"], [data-quick-tool="arxivxplorer"], [data-quick-tool="semantic-scholar"], [data-quick-tool="google-scholar"]').count(), 0);
+  assert.equal(await quick.getByRole('link', {name:'DOI', exact:true}).count(), 1);
+  assert.equal(await quick.getByRole('navigation').getByRole('link', {name:'DOI', exact:true}).count(), 0);
+  assert.equal(await quick.locator('[data-quick-tool="doi"]').count(), 0);
+  assert.equal(await quick.locator('[data-quick-tool="arxivtldr"], [data-quick-tool="arxivxplorer"], [data-quick-tool="semantic-scholar"], [data-quick-tool="google-scholar"], [data-quick-tool="connected-papers"]').count(), 0);
   assert.equal(await quick.locator('[data-quick-tool="talk2arxiv"], [data-quick-tool="arxivisual"]').count(),0);
   assert.equal(await quick.locator('[data-quick-tool="github"]').count(),0);
   assert.ok((await quick.boundingBox()).y < (await page.locator("h1").boundingBox()).y);
@@ -273,8 +282,8 @@ try {
       const box = el.getBoundingClientRect(); return { x: box.x, y: box.y };
     }));
     assert.ok(iconPositions.every((pos, i) => pos.y === iconPositions[0].y && (!i || pos.x > iconPositions[i - 1].x)));
-    await toolbar.locator('[data-quick-tool="pith"]').scrollIntoViewIfNeeded();
-    assert.equal(await toolbar.locator('[data-quick-tool="pith"]').isVisible(), true);
+    await toolbar.locator('[data-quick-tool="emergent-mind"]').scrollIntoViewIfNeeded();
+    assert.equal(await toolbar.locator('[data-quick-tool="emergent-mind"]').isVisible(), true);
     assert.ok(Math.abs(thirdPartyBox.x + thirdPartyBox.width - toolbarBox.x - toolbarBox.width) < 2);
     if (width > 640) {
       const localBox = await page.getByTestId("paper-document-actions").boundingBox();

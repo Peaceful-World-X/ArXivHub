@@ -31,6 +31,10 @@ Added on 2026-09-28 (favicon.im provides cached site icons when the original hos
 - Gist Science: https://gist.science/ (inline SVG favicon, saved locally).
 - Moonlight: https://www.themoonlight.io/favicon.ico
 - Growbotics: https://robotics.growbotics.ai/favicon.svg
+- ArcXiv: https://arcxiv.org/favicon.svg
+- OpenTrain AI: https://favicon.im/opentrain.ai?larger=true (cached site icon; the direct favicon request timed out).
+- Paperlayer: https://paperlayer.ai/icon.svg?ebbb1e780311f558
+- CatalyzeX: https://www.catalyzex.com/favicon.ico (the original response is JPEG, saved as catalyzex.jpg).
 - Pith: https://pith.science/static/icons/pith-icon.svg (fixed the dark fill for the site's white icon background).
 - DeepPaper: https://arxiv.deeppaper.ai/icon.svg
 - AIModels.fyi: https://favicon.im/aimodels.fyi?larger=true (cached site icon; white artwork displayed on a dark background).
