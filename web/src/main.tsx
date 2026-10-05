@@ -7,10 +7,6 @@ import "./styles.css";
 const root = document.getElementById("root");
 if (!root) throw new Error("ArXiv Hub root element is missing");
 
-if (import.meta.env.DEV && !navigator.webdriver) {
-  void import("./lib/dev-order-sync").then(({ startDefaultOrderSync }) => startDefaultOrderSync());
-}
-
 createRoot(root).render(
   <StrictMode>
     <RouterProvider router={getRouter()} />

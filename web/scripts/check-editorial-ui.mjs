@@ -7,11 +7,17 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1080 } });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('https://api.alphaxiv.org/**', route => route.fulfill({json:{universal_paper_id:'1706.03762',metrics:{public_total_votes:0}}}));
+  await page.route('https://api.semanticscholar.org/**', route => route.fulfill({json:{paperId:'a'.repeat(40),citationCount:0,externalIds:{ArXiv:'1706.03762'}}}));
+  await page.route('https://api.openalex.org/**', route => route.fulfill({json:{results:[]}}));
+  await page.route('https://api.microlink.io/**', route => route.abort());
+  await page.route('https://api.datacite.org/**', route => route.fulfill({status:404,body:'Metadata disabled in navigation fixture'}));
+  await page.route('https://r.jina.ai/**', route => route.fulfill({status:404,body:'Metadata disabled in navigation fixture'}));
   await page.goto(base);
   const tab = (name) => page.getByRole('button', { name, exact: true });
-  assert.match(await page.getByTestId('home-stats').innerText(), /78 个网址\s*·\s*15 个工具/);
-  assert.deepEqual(await page.locator('button[data-category]').evaluateAll(items=>items.map(el=>el.dataset.category)), ['all','favorites','source','ai','discussion','search','translate','discover','xiv','agent','zotero']);
-  assert.equal(await page.locator('article').count(), 93);
+  assert.match(await page.getByTestId('home-stats').innerText(), /98 个网址\s*·\s*18 个工具\s*·\s*12 个类别/);
+  assert.deepEqual(await page.locator('button[data-category]').evaluateAll(items=>items.map(el=>el.dataset.category)), ['all','favorites','source','ai-summary','ai-chat','search','discussion','translate','discover','subscribe','xiv','agent','zotero','tool']);
+  assert.equal(await page.locator('article').count(), 116);
   assert.equal(await page.locator('h1').evaluate((el) => getComputedStyle(el).fontSize), '64px');
   assert.equal(await page.locator('h1').evaluate((el) => getComputedStyle(el).letterSpacing), 'normal');
   assert.match(await page.locator('h1').evaluate((el) => getComputedStyle(el).fontFamily), /Noto Serif/);
@@ -22,11 +28,14 @@ try {
   assert.equal(await tab('全部').evaluate((el) => getComputedStyle(el, '::after').backgroundColor), 'rgb(179, 27, 27)');
   assert.equal(await tab('Agent').evaluate((el) => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
   assert.equal(await page.locator('article').first().evaluate((el) => getComputedStyle(el).borderRadius), '8px');
+  assert.equal(await page.getByTestId('catalog-search-toggle').count(), 1);
+  assert.equal(await page.getByTestId('catalog-search-input').count(), 0);
   await tab('Agent').click();
-  assert.equal(await page.locator('article').count(), 6);
-  await page.getByPlaceholder('筛选工具').fill('arxiv-mcp');
+  assert.equal(await page.locator('article').count(), 9);
+  await page.getByTestId('catalog-search-toggle').click();
+  await page.getByPlaceholder('检索').fill('arxiv-mcp');
   assert.equal(await page.locator('article').count(), 1);
-  await page.getByPlaceholder('筛选工具').fill('');
+  await page.getByPlaceholder('检索').fill('');
   await tab('全部').click();
   for (const [width, height] of [[1440, 1080], [1280, 900], [768, 1024], [390, 844], [320, 640]]) {
     await page.setViewportSize({ width, height });
@@ -40,7 +49,7 @@ try {
   }
   await tab('Toggle language').click();
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'en');
-  assert.match(await page.getByTestId('home-stats').innerText(), /78 websites\s*·\s*15 tools/);
+  assert.match(await page.getByTestId('home-stats').innerText(), /98 websites\s*·\s*18 tools\s*·\s*12 categories/);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: '../screenshots/editorial-home-english-mobile.png', animations: 'disabled' });
   await tab('Toggle language').click();

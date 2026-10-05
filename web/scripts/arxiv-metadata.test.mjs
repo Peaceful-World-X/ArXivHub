@@ -150,6 +150,16 @@ test("alphaXiv likes use public_total_votes, including zero, and reject net vote
   }
 });
 
+test("alphaXiv likes use the Reader fallback when the browser blocks the API origin", async (t) => {
+  const fallbackId = "2401.99098";
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (url.startsWith("https://api.alphaxiv.org/")) throw new TypeError("Failed to fetch");
+    assert.equal(url, `https://r.jina.ai/https://api.alphaxiv.org/papers/v3/${fallbackId}/preview`);
+    return new Response(`URL Source: ${url}\nMarkdown Content:\n${JSON.stringify({ ...alphaRecord, universal_paper_id: fallbackId, metrics: { public_total_votes: 7 } })}`);
+  });
+  assert.equal(await fetchAlphaXivLikes(fallbackId), 7);
+});
+
 test("metadata and likes share a public preview request across versions and refresh after fifteen minutes", async (t) => {
   let now = Date.now(), calls = 0;
   t.mock.method(Date, "now", () => now);

@@ -3,6 +3,13 @@ export const CARD_COLORS = [
   "var(--color-card-lilac)", "var(--color-card-lemon)", "var(--color-card-peach)",
 ];
 
+// Keep a pastel background while varying saturation and lightness enough for large favorite lists.
+export function favoriteColor(hue: number): string {
+  const saturation = 64 + (Math.round(hue * 10) % 9);
+  const lightness = 90 + (Math.round(hue * 7) % 7);
+  return `hsl(${hue} ${saturation}% ${lightness}%)`;
+}
+
 export function assignFavoriteHues(ids: string[], saved: Record<string, number> = {}): Record<string, number> {
   const hues = { ...saved };
   const used = new Set(Object.values(hues));

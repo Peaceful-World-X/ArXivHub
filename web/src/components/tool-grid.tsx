@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, rectSortingStrategy, SortableContext, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { AlertCircle, ArrowDownUp, Check, RotateCcw, Save } from "lucide-react";
+import { AlertCircle, ArrowDownUp, Check, RotateCcw, Save, Search, X } from "lucide-react";
 import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
 import { CATEGORIES, TOOLS, DEFAULT_FAVORITES, PAPER_CATEGORIES, type Tool, type ToolContext } from "@/lib/tools";
-import { applyOrder, DEFAULT_TOOL_ORDERS, matchesCategory, type FilterCategory } from "@/lib/tool-order";
+import { applyOrder, matchesCategory, savedOrder, type FilterCategory } from "@/lib/tool-order";
 import { saveDefaultToolOrder } from "@/lib/dev-order-sync";
 import { cn } from "@/lib/utils";
 import { ToolCard } from "./tool-card";
@@ -23,9 +23,15 @@ export function ToolGrid({ ctx, tools = TOOLS, compact = false, initialCategory 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const [cat, setCat] = useState<FilterCategory>(initialCategory);
   const [q, setQ] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [activeGroup, setActiveGroup] = useState<string>("discussion");
 
-  const ordered = useMemo(() => applyOrder(applyOrder(tools.filter((tool) => matchesCategory(tool, cat, pinned)), pinned), compact ? [] : toolOrders[cat] ?? DEFAULT_TOOL_ORDERS[cat]), [tools, cat, pinned, compact, toolOrders]);
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus();
+  }, [searchOpen]);
+
+  const ordered = useMemo(() => applyOrder(tools.filter((tool) => matchesCategory(tool, cat, pinned)), compact ? [] : savedOrder(cat, toolOrders), pinned, savedOrder("favorites", toolOrders)), [tools, cat, pinned, compact, toolOrders]);
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return ordered.filter((tool) => `${tool.name} ${tool.nameZh} ${tool.blurb} ${tool.blurbZh}`.toLowerCase().includes(needle));
@@ -47,7 +53,7 @@ export function ToolGrid({ ctx, tools = TOOLS, compact = false, initialCategory 
   if (compact) {
     const groups = PAPER_CATEGORIES.map((id) => ({
         ...CATEGORIES.find((category) => category.id === id)!,
-        tools: applyOrder(filtered.filter((tool) => matchesCategory(tool, id, pinned)), toolOrders[id] ?? DEFAULT_TOOL_ORDERS[id]),
+        tools: applyOrder(filtered.filter((tool) => matchesCategory(tool, id, pinned)), savedOrder(id, toolOrders), pinned, savedOrder("favorites", toolOrders)),
       }))
       .filter((group) => group.tools.length > 0);
     return (
@@ -90,13 +96,19 @@ export function ToolGrid({ ctx, tools = TOOLS, compact = false, initialCategory 
             </button>
           ))}
         </div>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.searchTools} aria-label={t.searchTools} className="h-9 w-24 shrink-0 rounded-sm border border-border bg-surface px-2 text-center text-sm placeholder:text-subtle focus:border-border-strong focus:outline-none focus:ring-2 focus:ring-accent/20 sm:w-28" />
-        {editing ? <button type="button" onClick={() => resetToolOrder(cat)} title={t.resetOrder} aria-label={t.resetOrder} className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2"><RotateCcw className="size-4" /></button> : null}
-        {import.meta.env.DEV && editing ? <button type="button" disabled={saveStatus === "saving"} onClick={() => {
-          setSaveStatus("saving");
-          void saveDefaultToolOrder().then(() => setSaveStatus("saved"), () => setSaveStatus("error"));
-        }} aria-label={t.saveDefaultOrder} title={saveStatus === "saved" ? t.defaultOrderSaved : saveStatus === "error" ? t.defaultOrderFailed : t.saveDefaultOrder} className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 disabled:opacity-50">{saveStatus === "saved" ? <Check className="size-4 text-ok" /> : saveStatus === "error" ? <AlertCircle className="size-4 text-accent" /> : <Save className="size-4" />}</button> : null}
-        <button type="button" onClick={() => setEditing(!editing)} aria-pressed={editing} title={editing ? t.finishSorting : t.sortTools} aria-label={editing ? t.finishSorting : t.sortTools} className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2">{editing ? <Check className="size-4 text-ok" /> : <ArrowDownUp className="size-4" />}</button>
+        <div className="relative z-10 flex shrink-0 items-center gap-1">
+          {searchOpen ? <div className="absolute right-0 top-1/2 z-20 flex w-36 -translate-y-1/2 items-center gap-1 rounded-full border border-border bg-surface px-2 shadow-soft focus-within:border-border-strong focus-within:ring-2 focus-within:ring-accent/20">
+            <Search className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+            <input ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { setQ(""); setSearchOpen(false); } }} placeholder={t.searchTools} aria-label={t.searchTools} data-testid="catalog-search-input" className="h-8 min-w-0 flex-1 bg-transparent px-0 text-center text-xs placeholder:text-subtle focus:outline-none" />
+            <button type="button" onClick={() => { setQ(""); setSearchOpen(false); }} aria-label={lang === "zh" ? "关闭检索" : "Close search"} title={lang === "zh" ? "关闭检索" : "Close search"} className="grid size-6 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2"><X className="size-3.5" /></button>
+          </div> : <button type="button" onClick={() => setSearchOpen(true)} aria-label={t.searchTools} title={t.searchTools} data-testid="catalog-search-toggle" className="grid size-9 shrink-0 place-items-center rounded-full border border-border bg-surface text-muted transition-colors hover:border-border-strong hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent"><Search className="size-4" /></button>}
+          {editing ? <button type="button" onClick={() => resetToolOrder(cat)} title={t.resetOrder} aria-label={t.resetOrder} className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2"><RotateCcw className="size-4" /></button> : null}
+          {import.meta.env.DEV && editing ? <button type="button" disabled={saveStatus === "saving"} onClick={() => {
+            setSaveStatus("saving");
+            void saveDefaultToolOrder().then(() => setSaveStatus("saved"), () => setSaveStatus("error"));
+          }} aria-label={t.saveDefaultOrder} title={saveStatus === "saved" ? t.defaultOrderSaved : saveStatus === "error" ? t.defaultOrderFailed : t.saveDefaultOrder} className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 disabled:opacity-50">{saveStatus === "saved" ? <Check className="size-4 text-ok" /> : saveStatus === "error" ? <AlertCircle className="size-4 text-accent" /> : <Save className="size-4" />}</button> : null}
+          <button type="button" onClick={() => setEditing(!editing)} aria-pressed={editing} title={editing ? t.finishSorting : t.sortTools} aria-label={editing ? t.finishSorting : t.sortTools} className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2">{editing ? <Check className="size-4 text-ok" /> : <ArrowDownUp className="size-4" />}</button>
+        </div>
       </div>
       {filtered.length === 0 ? <p role="status" className="mt-8 text-sm text-muted">{cat === "favorites" && !q.trim() ? t.noFavorites : t.noTools}</p> : (
         <DndContext key={cat} sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (over) moveTool(filtered.findIndex((tool) => tool.id === active.id), filtered.findIndex((tool) => tool.id === over.id)); }}>

@@ -20,9 +20,11 @@ try {
   await page.locator('article').first().getByRole('button', { name: '后移', exact: true }).click();
   const moved = [original[1], original[0], ...original.slice(2)];
   assert.deepEqual(await ids(), moved);
-  await tab('AIChat').click();
+  await tab('AI问答').click();
   const aiOriginal = await ids();
-  await page.locator('article').first().getByRole('button', { name: '后移', exact: true }).click();
+  // The first AI问答 card is a pinned default favorite, so move the first unpinned card.
+  await page.locator('article').nth(1).getByRole('button', { name: '后移', exact: true }).click();
+  await page.waitForTimeout(100);
   const aiMoved = await ids();
   assert.notDeepEqual(aiMoved, aiOriginal);
   assert.deepEqual((await saved()).toolOrders.favorites, moved);
@@ -31,22 +33,24 @@ try {
   assert.deepEqual(await ids(), moved);
   const reloadedColors = await page.locator('article').evaluateAll((cards) => Object.fromEntries(cards.map((card) => [card.dataset.toolId, getComputedStyle(card).backgroundColor])));
   original.forEach((id, index) => assert.equal(reloadedColors[id], colors[index]));
-  await tab('AIChat').click();
+  await tab('AI问答').click();
   assert.deepEqual(await ids(), aiMoved);
 
   // Reordering search results must leave nonmatching cards in their slots.
   await tab('原文').click();
   const sources = await ids();
   await tab('调整顺序').click();
-  await page.getByPlaceholder('筛选工具').fill('arxiv');
+  await page.getByTestId('catalog-search-toggle').click();
+  await page.getByPlaceholder('检索').fill('arxiv');
   const matches = await ids();
   await page.locator('article').first().getByRole('button', { name: '后移', exact: true }).click();
-  await page.getByPlaceholder('筛选工具').fill('');
+  await page.getByPlaceholder('检索').fill('');
   const afterSearch = await ids();
   for (let i = 0; i < sources.length; i++) if (!matches.includes(sources[i])) assert.equal(afterSearch[i], sources[i]);
+  await page.getByRole('button', { name: '关闭检索', exact: true }).click();
   await tab('恢复默认顺序').click();
   assert.deepEqual(await ids(), sources);
-  assert.deepEqual((await saved()).toolOrders.ai, aiMoved);
+  assert.deepEqual((await saved()).toolOrders['ai-chat'], aiMoved);
 
   // Actual pointer drag and keyboard sorting both persist.
   const first = page.locator('article').first().getByRole('button', { name: '拖动排序', exact: true });

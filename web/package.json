@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080",
+    "sync:userscript": "node scripts/sync-userscript.mjs",
+    "prebuild": "npm run sync:userscript",
     "build": "vite build && node scripts/copy-static.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 8081",
     "typecheck": "tsc --noEmit",

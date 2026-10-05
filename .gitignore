@@ -5,3 +5,4 @@ node_modules/
 dist/
 *.log
 screenshots
+AGENTS.md

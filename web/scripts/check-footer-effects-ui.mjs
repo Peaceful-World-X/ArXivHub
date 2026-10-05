@@ -18,7 +18,7 @@ try {
   const colors = () => page.locator('article').evaluateAll((cards) => Object.fromEntries(cards.map((card) => [card.dataset.toolId, getComputedStyle(card).backgroundColor])));
   await favorites();
   const initial = await colors();
-  assert.equal(new Set(Object.values(initial)).size, 6);
+  assert.equal(new Set(Object.values(initial)).size, Object.keys(initial).length);
   await page.reload();
   await favorites();
   assert.deepEqual(await colors(), initial);

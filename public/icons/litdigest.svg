@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LitDigest">
+  <rect width="64" height="64" rx="16" fill="#eff6ff"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="rgba(20,32,51,0.14)"/>
+  <text x="13.8" y="41.5" font-family="Georgia, serif" font-size="26.5" font-weight="700" fill="#0f172a">L</text>
+  <text x="27.8" y="42" font-family="Georgia, serif" font-size="29.5" font-weight="700" fill="#2563eb">D</text>
+</svg>

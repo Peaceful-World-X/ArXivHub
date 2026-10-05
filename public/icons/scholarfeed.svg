@@ -1,0 +1,13 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bar { fill: #1C1917; }
+    @media (prefers-color-scheme: dark) {
+      .bar { fill: #FAFAFA; }
+    }
+  </style>
+  <rect class="bar" x="19" y="19" width="60" height="15" />
+  <rect class="bar" x="19" y="67" width="60" height="15" />
+  <rect class="bar" x="7" y="43" width="85" height="15" />
+  <rect class="bar" x="42" y="34" width="9" height="12" transform="rotate(90 42 34)" />
+  <rect class="bar" x="68" y="58" width="9" height="12" transform="rotate(90 68 58)" />
+</svg>

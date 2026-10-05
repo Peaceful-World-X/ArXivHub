@@ -51,9 +51,11 @@ try {
   await page.goto(base);
   assert.equal(await page.locator('header a[href$="/catalog"]').count(), 0);
   const defaults = [
-    ['paperdance', 'https://paperdance.org/'], ['arxivdaily', 'https://www.arxivdaily.com/'],
-    ['alphaxiv', 'https://www.alphaxiv.org/'], ['hjfy', 'https://hjfy.top/arxiv/2608.15875'],
-    ['papers-cool', 'https://papers.cool/arxiv/2608.15875'], ['arxivtldr', 'https://arxivtldr.org/abs/2608.15875'],
+    ['alphaxiv', 'https://www.alphaxiv.org/'], ['paperlayer', 'https://paperlayer.ai/'],
+    ['hjfy', 'https://hjfy.top/arxiv/2608.15875'], ['papers-cool', 'https://papers.cool/arxiv/2608.15875'],
+    ['arxivdaily', 'https://www.arxivdaily.com/'], ['paperdance', 'https://paperdance.org/'],
+    ['arxivtldr', 'https://arxivtldr.org/abs/2608.15875'],
+    ['arxiv-rss', 'https://ronpay.github.io/arxiv-rss-feed-generator/'], ['pith', 'https://pith.science/'],
   ];
   assert.equal(await page.getByRole('button', {name:'全部',exact:true}).getAttribute('aria-pressed'), 'true');
   assert.deepEqual(await page.locator('button[data-category]').evaluateAll(items=>items.slice(0,2).map(el=>el.dataset.category)), ['all','favorites']);
@@ -76,10 +78,11 @@ try {
   await page.reload();
   await page.getByRole("button", { name: "收藏", exact: true }).click();
   assert.equal(await page.locator("article").count(), 1);
-  await page.getByPlaceholder("筛选工具").fill("not-a-tool");
+  await page.getByTestId("catalog-search-toggle").click();
+  await page.getByPlaceholder("检索").fill("not-a-tool");
   await page.getByRole("status").waitFor();
   assert.equal(await page.locator("article").count(), 0);
-  await page.getByPlaceholder("筛选工具").fill("");
+  await page.getByPlaceholder("检索").fill("");
 
   await page.goto(new URL("p/2608.15875", base).href);
   await page.getByTestId("paper-authors").waitFor();
@@ -91,10 +94,10 @@ try {
   assert.equal(await tldr.locator("h2 a").getAttribute("href"), "https://arxivtldr.org/abs/2608.15875");
   assert.doesNotMatch(await tldr.innerText(), /arxivtldr\.org/);
   assert.doesNotMatch(await tldr.innerText(), /SECRET|主要贡献|为什么这很重要|Semantic Scholar|Zotero/);
-  assert.deepEqual(await list.locator("h3").allTextContents(), ["讨论", "AIChat", "检索", "翻译"]);
+  assert.deepEqual(await list.locator("h3").allTextContents(), ["讨论", "AI解读", "AI问答", "检索", "翻译"]);
   assert.equal(await list.getByRole('button', {name:'原文',exact:true}).count(),0);
   assert.equal(await list.getByRole('button', {name:'讨论',exact:true}).getAttribute('aria-pressed'),'true');
-  const expectedGroups = [['discussion','讨论',11],['ai','AIChat',19],['search','检索',10],['translate','翻译',3]];
+  const expectedGroups = [['discussion','讨论',10],['ai-summary','AI解读',14],['ai-chat','AI问答',7],['search','检索',19],['translate','翻译',4]];
   for(const [id,label,count] of expectedGroups) {
     assert.equal(Number(await list.getByRole('button',{name:label,exact:true}).locator('[data-category-count]').innerText()),count);
     assert.equal(await list.locator(`#paper-tools-${id} [data-tool-id]`).count(),count);
@@ -106,27 +109,44 @@ try {
   const documents = page.getByTestId('paper-document-actions');
   assert.deepEqual(await documents.locator(':scope > div > a, :scope > div > button').allTextContents(), ['PDF', 'HTML', 'MD', 'TeX', 'TB', 'DOI', 'BibTex']);
   assert.equal(await documents.getByRole('link',{name:'arXiv 外部引用（Trackbacks）',exact:true}).getAttribute('href'),'https://arxiv.org/tb/2608.15875');
-  const doiLink = documents.getByRole('link', {name:'DOI', exact:true});
-  assert.equal(await doiLink.getAttribute('href'), 'https://doi.org/10.48550/arXiv.2608.15875');
-  assert.equal(await doiLink.getAttribute('title'), 'DOI: 10.48550/arXiv.2608.15875');
+  const doiButton = documents.getByRole('button', {name:'DOI', exact:true});
+  assert.equal(await doiButton.getAttribute('title'), 'DOI: 10.48550/arXiv.2608.15875');
+  await doiButton.click();
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'https://doi.org/10.48550/arXiv.2608.15875');
   const tex = documents.getByRole('link', {name:'TeX 源码', exact:true});
   assert.equal(await tex.getAttribute('href'), 'https://arxiv.org/src/2608.15875');
   assert.equal(await tex.getAttribute('title'), 'TeX 源码');
-  assert.equal(await list.locator('#paper-tools-discussion [data-tool-id="hf-papers"] a').getAttribute('href'),'https://huggingface.co/papers/2608.15875');
+  assert.equal(await list.locator('#paper-tools-search [data-tool-id="hf-papers"] a').getAttribute('href'),'https://huggingface.co/papers/2608.15875');
   assert.equal(await list.locator('[data-tool-id="researchhub"]').count(),0);
   assert.equal(await list.locator('[data-tool-id="openalex"] a').getAttribute('href'),'https://openalex.org/works?filter=default.search:Example%20Paper');
-  assert.equal(await list.locator('#paper-tools-ai [data-tool-id="pwc"] a').getAttribute('href'), 'https://paperswithcode.co/paper/2608.15875');
+  assert.equal(await list.locator('#paper-tools-search [data-tool-id="pwc"] a').getAttribute('href'), 'https://paperswithcode.co/paper/2608.15875');
   assert.equal(await list.locator("article, input").count(), 0);
   const rows = list.locator("[data-tool-id]");
-  assert.equal(await rows.count(), 43);
+  assert.equal(await rows.count(), 54);
+  assert.equal(await list.locator('#paper-tools-translate [data-tool-id="pdf2zh"] a').getAttribute('href'), 'https://pdf2zh.com/');
+  await list.locator('#paper-tools-translate [data-tool-id="pdf2zh"] img').last().evaluate((img) => img.decode());
+  assert.equal(await list.locator('[data-tool-id="zotero-arxiv-reader"], [data-tool-id="zotarxiv"], [data-tool-id="zotero-convert-to-arxiv"], [data-tool-id="alphapulse"], [data-tool-id="discovery-daily"]').count(),0);
+  for (const [id, href] of [
+    ['sciencestack','https://www.sciencestack.ai/paper/2608.15875'],
+    ['summarizepaper','https://www.summarizepaper.com/en/arxiv-id/2608.15875'],
+    ['arxivmax','https://www.arxivmax.com/papers/2608.15875'],
+    ['arxivlens','https://arxivlens.com/search?query=&doiOrArxivId=2608.15875'],
+    ['asxiv','https://asxiv.org/pdf/2608.15875'],
+  ]) {
+    const category = id === 'asxiv' ? 'ai-chat' : 'ai-summary';
+    const row = list.locator(`#paper-tools-${category} [data-tool-id="${id}"]`);
+    assert.equal(await row.locator('a').getAttribute('href'), href);
+    await row.locator('img').last().evaluate((img) => img.decode());
+  }
+  for (const id of ['scholarfeed', 'weekinpapers', 'the-latest-in-ai']) assert.equal(await list.locator(`[data-tool-id="${id}"]`).count(), 0);
   for(const [id,url] of [
     ['chatpaper','https://chatpaper.com/'], ['chatdoc','https://chatdoc.com/'],
     ['explainpaper','https://www.explainpaper.com/'], ['sciencecast','https://www.sciencecast.org/'],
     ['arxiv-bshk','https://arxiv.bshk.app/'], ['litmaps','https://app.litmaps.com/preview'],
     ['chinarxiv','https://chinarxiv.chatpaper.top/'], ['immersive-translate','https://app.immersivetranslate.com/babel-doc/'],
   ]) assert.equal(await list.locator(`[data-tool-id="${id}"] a`).getAttribute('href'),url);
-  assert.equal(await list.getByText(/发现|Zotero|ArXiv Daily|PaperDance/).count(), 0);
-  assert.equal(await list.locator('[data-tool-id="arxiv-txt"], [data-tool-id="alphaxiv-overview"], [data-tool-id="paperdigest"]').count(), 0);
+  assert.equal(await list.locator('h3').filter({ hasText: /发现|Zotero/ }).count(), 0);
+  assert.equal(await list.locator('[data-tool-id="arxiv-txt"], [data-tool-id="alphaxiv-overview"], [data-tool-id="paperdigest"], [data-tool-id="zotero-bib"]').count(), 0);
   assert.equal(await list.locator('[data-tool-id="hjfy"] img').last().getAttribute("src"), new URL("icons/hjfy.svg", base).pathname);
   assert.equal(await page.getByRole("heading", { name: "Abstract", exact: true }).count(), 1);
   assert.equal(await page.locator('[aria-controls="paper-abstract"]').count(), 0);
@@ -145,22 +165,23 @@ try {
     ["openreview", "https://openreview.net/search?term=Example%20Paper"],
     ["pwc", "https://paperswithcode.co/paper/2608.15875"],
     ["pith", "https://pith.science/paper/2608.15875"],
-    ["catalyzex", "https://www.catalyzex.com/paper/example-paper/code"],
-    ["pubpeer", "https://www.pubpeer.com/search?q=2608.15875"],
+    ["gist-science", "https://gist.science/zh/paper/2608.15875"],
+    ["arxivmax", "https://www.arxivmax.com/papers/2608.15875"],
   ]) {
     assert.equal(await quick.locator(`[data-quick-tool="${id}"]`).getAttribute("href"), href);
   }
   assert.deepEqual(await quick.locator("[data-quick-tool]").evaluateAll((items) => items.map((el) => el.dataset.quickTool)), [
-    "alphaxiv", "paperlayer", "hjfy", "papers-cool", "pith", "pwc", "catalyzex", "pubpeer", "openreview", "emergent-mind",
+    "alphaxiv", "paperlayer", "hjfy", "papers-cool", "pith", "pwc", "gist-science", "arxivmax", "openreview", "emergent-mind",
   ]);
-  assert.equal(await quick.getByRole('link', {name:'DOI', exact:true}).count(), 1);
+  assert.equal(await quick.getByRole('button', {name:'DOI', exact:true}).count(), 1);
+  assert.equal(await quick.getByRole('link', {name:'DOI', exact:true}).count(), 0);
   assert.equal(await quick.getByRole('navigation').getByRole('link', {name:'DOI', exact:true}).count(), 0);
   assert.equal(await quick.locator('[data-quick-tool="doi"]').count(), 0);
   assert.equal(await quick.locator('[data-quick-tool="arxivtldr"], [data-quick-tool="arxivxplorer"], [data-quick-tool="semantic-scholar"], [data-quick-tool="google-scholar"], [data-quick-tool="connected-papers"]').count(), 0);
   assert.equal(await quick.locator('[data-quick-tool="talk2arxiv"], [data-quick-tool="arxivisual"]').count(),0);
   assert.equal(await quick.locator('[data-quick-tool="github"]').count(),0);
   assert.ok((await quick.boundingBox()).y < (await page.locator("h1").boundingBox()).y);
-  assert.equal(await quick.locator("button").count(), 1);
+  assert.equal(await quick.locator("button").count(), 2);
   assert.equal(await quick.locator('[data-quick-tool="arxiv-abs"]').count(), 0);
   assert.equal(await quick.getByRole("button", { name: "打开已核验深链", exact: true }).count(), 0);
   assert.equal(await quick.getByRole("button", { name: "复制 ID", exact: true }).count(), 0);
@@ -208,25 +229,27 @@ try {
   for (const [name, url] of assistants) {
     await context.route(url, (route) => route.fulfill({ status: 200, body: 'AI destination test', contentType: 'text/html' }));
     const link = aiSection.getByRole("link", { name, exact: true });
-    assert.equal(await link.getAttribute("href"), url);
+    if (name === "ChatGPT" || name === "Claude" || name === "Grok") {
+      assert.match(await link.getAttribute("href"), new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      assert.match(decodeURIComponent(await link.getAttribute("href")), /请你详细介绍一下这篇论文/);
+      assert.match(decodeURIComponent(await link.getAttribute("href")), /https:\/\/arxiv\.org\/pdf\/2608\.15875v1/);
+    } else assert.equal(await link.getAttribute("href"), url);
     assert.equal((await link.innerText()).trim(), '');
     assert.ok(await link.getAttribute('title'));
     await link.locator("img").evaluate((img) => img.decode());
     const popupPromise = page.waitForEvent("popup");
     await link.click();
     const popup = await popupPromise;
+    await popup.waitForURL((value) => value.toString().startsWith(url));
     await popup.waitForLoadState();
-    assert.equal(popup.url(), url);
+    assert.ok(popup.url().startsWith(url));
     await popup.close();
     await page.bringToFront();
-    await aiSection.getByRole("status").filter({ hasText: "提问已复制" }).waitFor();
-    const question = await page.evaluate(() => navigator.clipboard.readText());
-    assert.match(question, /Example Paper/);
-    assert.match(question, /https:\/\/arxiv.org\/abs\/2608.15875/);
-    assert.match(question, /The model generalizes across robots/);
-    assert.doesNotMatch(question, /Comparison with|\n\s*\n/);
-    assert.equal(question.split('\n').length, 4);
-    assert.ok(question.startsWith('请分析'));
+    if (name === "Kimi" || name === "Gemini") {
+      await aiSection.getByRole("status").filter({ hasText: "提问已复制" }).waitFor();
+      const question = await page.evaluate(() => navigator.clipboard.readText());
+      assert.equal(question, '请你详细介绍一下这篇论文 https://arxiv.org/pdf/2608.15875v1');
+    }
   }
   await page.getByRole('button', { name: 'Toggle language' }).click();
   assert.equal(await page.getByRole('heading', { name: 'Abstract', exact: true }).count(), 1);
@@ -236,14 +259,14 @@ try {
   await aiSection.getByRole('link', { name: 'ChatGPT', exact: true }).click();
   await (await englishPopupPromise).close();
   await page.bringToFront();
-  await aiSection.getByRole('status').filter({ hasText: 'Question copied' }).waitFor();
-  assert.ok((await page.evaluate(() => navigator.clipboard.readText())).startsWith('Analyze this paper'));
+  assert.equal(await aiSection.getByRole('status').count(), 1);
+  assert.match(await aiSection.getByRole('status').innerText(), /提问已复制/);
   await page.getByRole('button', { name: 'Toggle language' }).click();
   await page.evaluate(() => {
     Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: () => Promise.reject(new Error('denied')) });
   });
   const failedCopyPopupPromise = page.waitForEvent('popup');
-  await aiSection.getByRole('link', { name: 'ChatGPT', exact: true }).click();
+  await aiSection.getByRole('link', { name: 'Kimi', exact: true }).click();
   await (await failedCopyPopupPromise).close();
   await aiSection.getByRole("status").filter({ hasText: "复制失败" }).waitFor();
   assert.equal(await aiSection.locator('details, summary, textarea').count(), 0);
@@ -308,9 +331,9 @@ try {
     assert.ok(navBox.x + navBox.width < firstRowBox.x);
     const navButtons = await nav.locator("button").evaluateAll((items) => items.map((el) => el.getBoundingClientRect().y));
     assert.ok(navButtons.every((y, i) => !i || y > navButtons[i - 1]));
-    await nav.getByRole("button", { name: "AIChat", exact: true }).click();
-    assert.equal(await nav.getByRole("button", { name: "AIChat", exact: true }).getAttribute("aria-pressed"), "true");
-    assert.ok(Math.abs((await page.locator("#paper-tools-ai").boundingBox()).y - 24) < 3);
+    await nav.getByRole("button", { name: "AI问答", exact: true }).click();
+    assert.equal(await nav.getByRole("button", { name: "AI问答", exact: true }).getAttribute("aria-pressed"), "true");
+    assert.ok(Math.abs((await page.locator("#paper-tools-ai-chat").boundingBox()).y - 24) < 3);
     const boxes = await rows.evaluateAll((items) => items.map((el) => {
       const r = el.getBoundingClientRect();
       return { x: r.x, y: r.y, bottom: r.bottom, height: r.height };
@@ -326,12 +349,12 @@ try {
   await legacy.evaluate(() => localStorage.setItem('arxiv-hub', JSON.stringify({version:0,state:{lang:'zh',pinned:['zotmeta'],history:[{id:'1706.03762',title:'Saved title',at:123}]}})));
   await legacy.reload();
   await legacy.getByRole('button',{name:'收藏',exact:true}).click();
-  assert.equal(await legacy.locator('article').count(),7);
+  assert.equal(await legacy.locator('article').count(), defaults.length + 1);
   assert.equal(await legacy.locator('article[data-tool-id="zotmeta"]').count(),1);
   await legacy.locator('article[data-tool-id="paperdance"]').getByRole('button',{name:'取消收藏',exact:true}).click();
   await legacy.reload();
   await legacy.getByRole('button',{name:'收藏',exact:true}).click();
-  assert.equal(await legacy.locator('article').count(),6);
+  assert.equal(await legacy.locator('article').count(), defaults.length);
   assert.equal(await legacy.locator('article[data-tool-id="paperdance"]').count(),0);
   assert.equal(await legacy.evaluate(()=>JSON.parse(localStorage.getItem('arxiv-hub')).state.history[0].title),'Saved title');
   await legacyContext.close();

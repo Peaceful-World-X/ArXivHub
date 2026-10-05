@@ -28,105 +28,132 @@
 2. 打开 [ArXivHub.user.js](https://raw.githubusercontent.com/Peaceful-World-X/ArXivHub/main/ArXivHub.user.js)，按提示安装。
 3. 刷新 arXiv 论文页即可使用。[查看脚本效果](images/002.png)
 
+脚本同步论文页入口、引用数和点赞数。点击圆形「＋」可添加或管理自定义网站，网址支持 `{id}`、`{title}`、`{url}`、`{doi}`，设置保存在浏览器中。
+
 ## 网址清单
 
-共 93 个入口（78 个网址、15 个工具）；分类与[网站配置](web/src/lib/tools.ts)一致。
+共 116 个入口（98 个网址、18 个工具、12 个类别）；分类与[网站配置](web/src/lib/tools.ts)一致。
+
+收录原则：不收录仅付费才能使用的网站。
 
 | 分类 | 名称 | 网址 | 简介 |
 | --- | --- | --- | --- |
-| 原文 | arXiv 摘要页 | <https://arxiv.org/> | 官方摘要与版本信息 |
-| 原文 | arXiv PDF | <https://arxiv.org/> | 官方论文 PDF |
-| 原文 | arXiv HTML | <https://arxiv.org/> | 官方 HTML 阅读 |
-| 原文 | arXiv 源码包 | <https://arxiv.org/> | 论文 TeX 源码 |
-| 原文 | ar5iv HTML | <https://ar5iv.labs.arxiv.org/> | 论文 HTML 阅读 |
-| 原文 | ZoteroBib | <https://zbib.org/> | 在线生成参考文献 |
-| AIChat | alphaXiv | <https://www.alphaxiv.org/> | 论文阅读与社区注释 |
-| AIChat | Cool Papers | <https://papers.cool/> | Kimi 辅助论文阅读 |
-| AIChat | ChatPaper | <https://chatpaper.com/> | 每日论文与 AI 对话 |
-| AIChat | ArXiv TLDR | <https://arxivtldr.org/> | 论文要点速览 |
-| AIChat | arXivisual | <https://arxivisual.org/> | 论文可视化讲解 |
-| AIChat | Talk2Arxiv | <https://www.talk2arxiv.org/> | 论文智能问答 |
-| AIChat | ScienceCast | <https://www.sciencecast.org/> | 科研论文视频讲解 |
-| AIChat | OpenTrain AI | <https://www.opentrain.ai/papers/> | 论文解读与实现资源 |
-| AIChat | Paperlayer | <https://paperlayer.ai/> | 中文 AI 论文解读 |
-| AIChat | Gist Science | <https://gist.science/> | AI 论文解读与要点摘要 |
-| AIChat | Moonlight | <https://www.themoonlight.io/zh> | AI 论文解读与问答 |
-| AIChat | Growbotics | <https://robotics.growbotics.ai/research/papers> | 机器人研究论文精选、核心方法与研究亮点解读 |
-| AIChat | DeepPaper | <https://arxiv.deeppaper.ai/> | AI 论文阅读与解读 |
-| AIChat | AI Papers | <https://aipapers.ai/> | 按标题检索 AI 论文 |
-| AIChat | AIModels.fyi | <https://www.aimodels.fyi/> | AI 论文摘要与研究解读 |
-| AIChat | Explainpaper | <https://www.explainpaper.com/> | 论文难句解释 |
-| AIChat | SciSpace | <https://scispace.com/> | 论文检索与 AI 阅读 |
-| AIChat | ChatDOC | <https://chatdoc.com/> | 带引用的文档问答 |
-| AIChat | Papers with Code | <https://paperswithcode.co/> | 论文代码、数据与榜单 |
-| Agent | arXiv TXT | <https://www.arxiv-txt.org/> | 论文摘要与纯文本 |
-| Agent | arXiv2MD | <https://www.arxiv2md.org/> | 论文转 Markdown |
-| Agent | MarkXiv | <https://markxiv.org/> | 论文转纯文本 |
-| Agent | arxiv-mcp | <https://github.com/blazickjp/arxiv-mcp-server> | arXiv MCP 检索与阅读 |
-| Agent | alphaxiv-mcp | <https://www.alphaxiv.org/docs/mcp> | alphaXiv MCP 接入 |
-| Agent | DeepXiv | <https://data.rag.ac.cn/> | 科研检索与数据服务 |
-| 翻译 | 幻觉翻译 | <https://hjfy.top/> | 同版式中文译文 |
-| 翻译 | ChinArXiv 翻译 | <https://chinarxiv.chatpaper.top/> | 论文中英双语翻译 |
-| 翻译 | 沉浸式翻译 | <https://app.immersivetranslate.com/babel-doc/> | 论文与网页翻译 |
-| 检索 | ArXiv Xplorer | <https://arxivxplorer.com/> | arXiv 语义搜索 |
-| 检索 | arXiv BSHK 语义搜索 | <https://arxiv.bshk.app/> | 浏览器内语义搜索 |
-| 检索 | Consensus | <https://consensus.app/> | 基于论文证据的问答 |
-| 检索 | Litmaps | <https://app.litmaps.com/preview> | 引文地图与文献发现 |
-| 检索 | Semantic Scholar | <https://www.semanticscholar.org/> | 学术检索与引用分析 |
-| 检索 | GitHub Search | <https://github.com/search> | 按论文 ID 搜索代码 |
-| 检索 | CatalyzeX | <https://www.catalyzex.com/> | 查找论文对应的开源代码实现 |
-| 检索 | OpenAlex | <https://openalex.org/> | 开放学术目录检索 |
-| 检索 | Google Scholar | <https://scholar.google.com/> | 学术搜索与被引信息 |
-| 检索 | DBLP | <https://dblp.org/> | 计算机科学文献目录 |
-| 讨论 | SciRate | <https://scirate.com/> | 论文评分与讨论 |
-| 讨论 | Pith | <https://pith.science/> | 论文阅读与社区讨论 |
-| 讨论 | Hugging Face Papers | <https://huggingface.co/papers> | 论文讨论与模型资源 |
-| 讨论 | GotIt | <https://gotit.pub/> | 论文阅读与批注讨论 |
-| 讨论 | PREreview | <https://prereview.org/> | 预印本开放评审 |
-| 讨论 | PubPeer | <https://www.pubpeer.com/> | 论文发表后评议 |
-| 讨论 | OpenReview | <https://openreview.net/> | 公开审稿与论文讨论 |
-| 讨论 | 小红书搜索 | <https://www.xiaohongshu.com/> | 论文笔记与讨论搜索 |
-| 讨论 | X 讨论搜索 | <https://x.com/> | X 论文讨论搜索 |
-| 讨论 | Reddit 搜索 | <https://www.reddit.com/> | Reddit 论文讨论搜索 |
-| 讨论 | 知乎搜索 | <https://www.zhihu.com/> | 知乎论文解读搜索 |
-| 发现 | IArxiv | <https://iarxiv.org/> | 论文发现，需登录 |
-| 发现 | ArcXiv | <https://arcxiv.org/> | 发现与收藏 arXiv 论文 |
-| 发现 | ArXiv Daily | <https://www.arxivdaily.com/> | 每日论文与中文摘要 |
-| 发现 | PaperDance | <https://paperdance.org/> | 图文速览论文 |
-| 发现 | Emergent Mind | <https://www.emergentmind.com/> | AI 摘要与研究追踪 |
-| 发现 | Connected Papers | <https://www.connectedpapers.com/> | 相似论文关系图 |
-| 发现 | Inciteful | <https://inciteful.xyz/> | 论文引文网络探索 |
-| 发现 | Paperscape | <https://paperscape.org/> | arXiv 论文地图 |
-| 发现 | PaperMatch | <https://papermatch.me/> | 查找相似论文 |
-| 发现 | Scholar Inbox | <https://www.scholar-inbox.com/> | 个性化论文推送 |
-| 发现 | arxiv-rss 订阅生成 | <https://ronpay.github.io/arxiv-rss-feed-generator/> | 生成论文 RSS 订阅 |
-| \*Xiv | ChinaXiv | <https://chinaxiv.org/> | 中国综合预印本平台 |
-| \*Xiv | bioRxiv | <https://www.biorxiv.org/> | 生物学预印本 |
-| \*Xiv | medRxiv | <https://www.medrxiv.org/> | 医学与健康科学预印本 |
-| \*Xiv | ChemRxiv | <https://chemrxiv.org/> | 化学预印本 |
-| \*Xiv | TechRxiv | <https://www.techrxiv.org/> | 电气与计算机技术预印本 |
-| \*Xiv | engrXiv | <https://engrxiv.org/> | 工程学预印本 |
-| \*Xiv | EarthArXiv | <https://eartharxiv.org/> | 地球科学预印本 |
-| \*Xiv | AgriRxiv | <https://www.cabidigitallibrary.org/journal/agrirxiv> | 农业科学预印本 |
-| \*Xiv | EcoEvoRxiv | <https://ecoevorxiv.org/> | 生态与进化生物学预印本 |
-| \*Xiv | PsyArXiv | <https://osf.io/preprints/psyarxiv> | 心理学预印本 |
-| \*Xiv | SocArXiv | <https://osf.io/preprints/socarxiv> | 社会科学工作论文 |
-| \*Xiv | SSRN | <https://www.ssrn.com/> | 多学科工作论文 |
-| \*Xiv | EconPapers | <https://econpapers.repec.org/> | 经济学文献检索 |
-| \*Xiv | Preprints.org | <https://www.preprints.org/> | 综合学科预印本 |
-| \*Xiv | ECSarXiv | <https://osf.io/preprints/ecsarxiv/> | 电化学与固态科学预印本 |
-| \*Xiv | SportRxiv | <https://sportrxiv.org/> | 运动与体育科学预印本 |
-| \*Xiv | EdArXiv | <https://osf.io/preprints/edarxiv> | 教育学预印本 |
-| \*Xiv | PhilArchive | <https://philarchive.org/> | 哲学开放论文库 |
-| Zotero | arXiv Reader | <https://github.com/TheoCUC/zotero-arxiv-reader> | Zotero 双语 AI 阅读 |
-| Zotero | ZotMeta | <https://github.com/RoadToDream/ZotMeta> | 补全与修复元数据 |
-| Zotero | arXiv Workflow | <https://github.com/AllanChain/zotero-arxiv-workflow> | 追踪发表与合并版本 |
-| Zotero | ZotarXiv | <https://github.com/zhanghm1995/ZotarXiv> | 导入论文与附件 |
-| Zotero | HJFY Split Reader | <https://github.com/Infinity4B/zotero-hjfy-split-reader> | 中英 PDF 分屏阅读 |
-| Zotero | Convert to arXiv | <https://github.com/EricJin2002/zotero-convert-to-arxiv> | 规范化 arXiv 条目 |
-| Zotero | arxiv-marker | <https://github.com/lelelelelelelelelelelelele/arxiv-marker> | 查询正式发表信息 |
-| Zotero | AlphaPulse | <https://github.com/IrisM6/AlphaPulse> | 显示论文热度与引用 |
-| Zotero | Citation Tally | <https://github.com/daeh/zotero-citation-tally> | 多来源论文引用统计 |
+| 原文 | arXiv 摘要页 | <https://arxiv.org/> | 官方页面看摘要、版本、作者与 DOI。 |
+| 原文 | arXiv PDF | <https://arxiv.org/> | 最稳定的原版 PDF 入口。 |
+| 原文 | arXiv HTML | <https://arxiv.org/> | 官方网页正文，可搜索、复制和看公式。 |
+| 原文 | arXiv 源码包 | <https://arxiv.org/> | 下载 TeX、Bib 和图片源文件。 |
+| 原文 | ar5iv HTML | <https://ar5iv.labs.arxiv.org/> | 把 TeX 变成更适合网页阅读的 HTML。 |
+| 原文 | arXiv TB | <https://arxiv.org/tb/> | 查看论文在站外留下的 Trackbacks。 |
+| AI解读 | Cool Papers | <https://papers.cool/> | 按 arXiv 分类刷新论文，Kimi 入口就在旁边。 |
+| AI解读 | ArXiv TLDR | <https://arxivtldr.org/> | 一页压缩 TLDR、关键要点和 Why it matters。 |
+| AI解读 | arXivisual | <https://arxivisual.org/> | 把方法流程做成视频，复杂结构一眼看懂。 |
+| AI解读 | Gist Science | <https://gist.science/> | 通俗解释、核心结论和技术摘要一次给齐。 |
+| AI解读 | Moonlight | <https://www.themoonlight.io/zh> | 像读 Review 一样看方法、贡献、实验和意义。 |
+| AI解读 | Growbotics | <https://robotics.growbotics.ai/research/papers> | 机器人和具身智能论文的重点与项目资源。 |
+| AI解读 | DeepPaper | <https://arxiv.deeppaper.ai/> | 按领域和主题整理论文，不用在 arXiv 里迷路。 |
+| AI解读 | AIModels.fyi | <https://www.aimodels.fyi/> | 用问题式摘要连接 AI 论文与模型生态。 |
+| AI解读 | ScienceCast | <https://www.sciencecast.org/> | 论文的演讲版：视频和交互媒体一起讲。 |
+| AI解读 | Paperlayer | <https://paperlayer.ai/> | AI 总结能回指原文证据，少一点黑箱感。 |
+| AI解读 | ScienceStack | <https://www.sciencestack.ai/> | 把摘要、章节、公式和图表拆成可读结构。 |
+| AI解读 | SummarizePaper | <https://www.summarizepaper.com/> | 按 ID 生成关键点和通俗摘要，先扫一眼再决定。 |
+| AI解读 | arXivMax | <https://www.arxivmax.com/> | 把论文变成 Explainer 和视频，快速抓住全貌。 |
+| AI解读 | ArxivLens | <https://arxivlens.com/> | 跨论文库给出 Quick Summary、Key Findings 和引用。 |
+| AI问答 | alphaXiv | <https://www.alphaxiv.org/> | 边读论文边提问，旁边还有社区注释。 |
+| AI问答 | ChatPaper | <https://chatpaper.com/> | 围绕论文正文对话，顺便刷每日论文。 |
+| AI问答 | Talk2Arxiv | <https://www.talk2arxiv.org/> | 改个链接就能和这篇 arXiv 论文对话。 |
+| AI问答 | asXiv | <https://asxiv.org/> | 右侧直接追问当前论文，轻量但很顺手。 |
+| AI问答 | Explainpaper | <https://www.explainpaper.com/> | 选中难句，让 AI 专门解释这一个地方。 |
+| AI问答 | SciSpace | <https://scispace.com/> | 科研 PDF Copilot，划词解释并继续追问。 |
+| AI问答 | ChatDOC | <https://chatdoc.com/> | 回答带原文引用，问完还能回到证据。 |
+| 检索 | ArXiv Xplorer | <https://arxivxplorer.com/> | 用自然语言、ID 或 URL 做 arXiv 语义搜索。 |
+| 检索 | arXiv BSHK 语义搜索 | <https://arxiv.bshk.app/> | 轻量语义搜索，关键词不够时来这里。 |
+| 检索 | Hugging Face Papers | <https://huggingface.co/papers> | 把论文、模型、数据集、Demo 和社区串起来。 |
+| 检索 | OpenTrain AI | <https://www.opentrain.ai/papers/> | 按 ID 找实现，并查看维护、CI 和许可证信号。 |
+| 检索 | searchthearXiv | <https://searchthearxiv.com/> | 围绕一篇论文继续找相近研究。 |
+| 检索 | CatalyzeX | <https://www.catalyzex.com/> | 论文到代码，专门找 Paper → Code。 |
+| 检索 | Consensus | <https://consensus.app/> | 把研究问题交给多篇论文一起回答。 |
+| 检索 | Litmaps | <https://app.litmaps.com/preview> | 从一篇种子论文画出前后继引用地图。 |
+| 检索 | Connected Papers | <https://www.connectedpapers.com/> | 看共引关系图，不只是普通引用列表。 |
+| 检索 | Inciteful | <https://inciteful.xyz/> | 展开前向和后向引用，找关键桥接文献。 |
+| 检索 | Paperscape | <https://paperscape.org/> | 把整个 arXiv 画成一张可以缩放的地图。 |
+| 检索 | PaperMatch | <https://papermatch.me/> | 丢进一篇论文，快速找内容相近的工作。 |
+| 检索 | Semantic Scholar | <https://www.semanticscholar.org/> | 搜索、TLDR、引用网络和相关论文一站完成。 |
+| 检索 | GitHub Search | <https://github.com/search> | 拿 arXiv ID 反查真正的代码仓库。 |
+| 检索 | OpenAlex | <https://openalex.org/> | 开放知识图谱，追作者、机构、主题和引用。 |
+| 检索 | Google Scholar | <https://scholar.google.com/> | 查被引、不同版本和正式发表版，覆盖面很大。 |
+| 检索 | Papers with Code | <https://paperswithcode.co/> | 论文、代码、数据集和 SOTA 榜单连在一起。 |
+| 检索 | DBLP | <https://dblp.org/> | 确认计算机论文的会议、期刊和作者记录。 |
+| 检索 | EconPapers | <https://econpapers.repec.org/> | RePEc 经济学检索，工作论文尤其好用。 |
+| 讨论 | SciRate | <https://scirate.com/> | 看研究者投票和评论，筛掉信息噪声。 |
+| 讨论 | Pith | <https://pith.science/> | 公开机器审稿，直接指出主要问题和可疑论证。 |
+| 讨论 | GotIt | <https://gotit.pub/> | 围绕正文做批注，讨论就贴在原文旁边。 |
+| 讨论 | PREreview | <https://prereview.org/> | 给预印本做开放同行评审。 |
+| 讨论 | PubPeer | <https://www.pubpeer.com/> | 看发表后质疑、勘误和作者回应。 |
+| 讨论 | OpenReview | <https://openreview.net/> | 直接看 Review、Rebuttal 和评分。 |
+| 讨论 | 小红书搜索 | <https://www.xiaohongshu.com/> | 搜中文论文笔记、图解和复现经验。 |
+| 讨论 | X 讨论搜索 | <https://x.com/> | 追作者发布和研究者即时讨论串。 |
+| 讨论 | Reddit 搜索 | <https://www.reddit.com/> | 找 AI 社区里更长、更敢说的讨论。 |
+| 讨论 | 知乎搜索 | <https://www.zhihu.com/> | 搜索中文长文解读和技术背景。 |
+| 翻译 | 幻觉翻译 | <https://hjfy.top/> | 生成接近原排版的中文 PDF。 |
+| 翻译 | ChinArXiv 翻译 | <https://chinarxiv.chatpaper.top/> | 打开中英双语版本，适合对照读。 |
+| 翻译 | 沉浸式翻译 | <https://app.immersivetranslate.com/babel-doc/> | 网页和 PDF 一起翻，科研网页也能用。 |
+| 翻译 | PDF2zh | <https://pdf2zh.com/> | 重点保留 PDF 的布局、公式和图表。 |
+| 发现 | IArxiv | <https://iarxiv.org/> | 按个人兴趣发现 arXiv，登录后更懂你。 |
+| 发现 | ArXiv Daily | <https://www.arxivdaily.com/> | 每天整理新论文，还给中文摘要。 |
+| 发现 | PaperDance | <https://paperdance.org/> | 把新论文做成图文卡片，刷起来不累。 |
+| 发现 | Emergent Mind | <https://www.emergentmind.com/> | 追热门 AI 论文、主题页和研究趋势。 |
+| 发现 | AI Papers | <https://aipapers.ai/> | 每日精选 AI 论文，顺手做语义问答。 |
+| 发现 | Scholar Feed | <https://www.scholarfeed.org/> | 按相关性、新颖性和影响力筛论文。 |
+| 发现 | Astro arXiv Sanity | <https://astro-arxiv-sanity.com/> | 天体物理专用的论文筛选器。 |
+| 发现 | ArXivTok | <https://arxivtok.vercel.app/> | TikTok 式刷 arXiv，低成本快速筛选。 |
+| 发现 | Benty Fields | <https://www.benty-fields.com/seminars> | 论文发现、Journal Club 和 Seminar 放一处。 |
+| 发现 | PaperSwipe | <https://paperswipe.co/> | 像刷卡片一样筛论文，喜欢再留下。 |
+| 发现 | SOTA Papers | <https://www.sotapapers.com/> | 编辑精选论文，用短文讲清贡献和强弱。 |
+| 发现 | WeekInPapers | <https://weekinpapers.com/> | 每周 CS arXiv 论文配通俗摘要和应用方向。 |
+| 发现 | The Latest in AI | <https://thelatestinai.com/> | 把最新 AI 论文聚成主题，看研究风向。 |
+| 订阅 | arXivSub | <https://arxivsub.comfyai.app/> | 按作者、机构和关键词订阅新论文。 |
+| 订阅 | Paper Digest | <https://www.paperdigest.org/arxiv/> | 按领域和作者追踪每日论文 Highlight。 |
+| 订阅 | ggrxiv | <https://www.ggrxiv.com/> | 按研究兴趣发现每日预印本。 |
+| 订阅 | LitDigest | <https://litdigest.app/> | 用一句研究方向换来每周匹配论文。 |
+| 订阅 | inveni | <https://inveni.uk/> | 从你的文献库学兴趣，每天推新论文。 |
+| 订阅 | Uncited | <https://uncited.org/> | 跨 arXiv、bioRxiv 和期刊追新文章。 |
+| 订阅 | Scholar Inbox | <https://www.scholar-inbox.com/> | 用点赞/踩训练你的论文推荐收件箱。 |
+| 订阅 | arxiv-rss 订阅生成 | <https://ronpay.github.io/arxiv-rss-feed-generator/> | 自己拼条件，生成专属 arXiv RSS。 |
+| Xiv宇宙 | ChinaXiv | <https://chinaxiv.org/> | 中科院体系的综合预印本平台。 |
+| Xiv宇宙 | bioRxiv | <https://www.biorxiv.org/> | 生命科学预印本的核心入口。 |
+| Xiv宇宙 | medRxiv | <https://www.medrxiv.org/> | 医学、临床和公共卫生预印本入口。 |
+| Xiv宇宙 | ChemRxiv | <https://chemrxiv.org/> | 化学领域的主流预印本平台。 |
+| Xiv宇宙 | TechRxiv | <https://www.techrxiv.org/> | 电气、电子和计算机技术预印本。 |
+| Xiv宇宙 | engrXiv | <https://engrxiv.org/> | 工程学科的开放预印本库。 |
+| Xiv宇宙 | EarthArXiv | <https://eartharxiv.org/> | 地球、环境和行星科学预印本。 |
+| Xiv宇宙 | AgriRxiv | <https://www.cabidigitallibrary.org/journal/agrirxiv> | 农业、食品和应用科学预印本。 |
+| Xiv宇宙 | EcoEvoRxiv | <https://ecoevorxiv.org/> | 生态、进化与保育生物学预印本。 |
+| Xiv宇宙 | PsyArXiv | <https://osf.io/preprints/psyarxiv> | 心理学与行为科学开放预印本。 |
+| Xiv宇宙 | SocArXiv | <https://osf.io/preprints/socarxiv> | 社会学与社会科学工作论文。 |
+| Xiv宇宙 | SSRN | <https://www.ssrn.com/> | 法律、经济、金融和社会科学工作论文。 |
+| Xiv宇宙 | Preprints.org | <https://www.preprints.org/> | 覆盖多学科的综合预印本平台。 |
+| Xiv宇宙 | ECSarXiv | <https://osf.io/preprints/ecsarxiv/> | 电化学与固态科学预印本。 |
+| Xiv宇宙 | SportRxiv | <https://sportrxiv.org/> | 运动科学与人体表现研究预印本。 |
+| Xiv宇宙 | EdArXiv | <https://osf.io/preprints/edarxiv> | 教育学与教育研究预印本。 |
+| Xiv宇宙 | PhilArchive | <https://philarchive.org/> | 哲学专业开放论文库。 |
+| Agent | arXiv TXT | <https://www.arxiv-txt.org/> | 把论文变成 LLM 能直接吃的纯文本。 |
+| Agent | arXiv2MD | <https://www.arxiv2md.org/> | 把 HTML 清成适合 LLM 的 Markdown。 |
+| Agent | ArcXiv | <https://arcxiv.org/> | 搜索 API、结构化 Markdown 和 MCP 一起接入。 |
+| Agent | MarkXiv | <https://markxiv.org/> | 从 LaTeX 结构生成 Markdown。 |
+| Agent | arxiv-mcp | <https://github.com/blazickjp/arxiv-mcp-server> | 给 MCP 客户端搜索、下载和分章节读 arXiv。 |
+| Agent | arxiv.py | <https://github.com/lukasschwab/arxiv.py> | Python 分页搜索和下载论文。 |
+| Agent | Scry | <https://scry.io/> | 把 arXiv、Reddit、HN 接进 Agent。 |
+| Agent | alphaxiv-mcp | <https://www.alphaxiv.org/docs/mcp> | 让 Agent 调用 alphaXiv 的全文和报告。 |
+| Agent | DeepXiv | <https://data.rag.ac.cn/> | 给 Agent 用的科研全文数据层。 |
+| Zotero | ZotMeta | <https://github.com/RoadToDream/ZotMeta> | 用 DOI、ISBN、arXiv ID 修元数据。 |
+| Zotero | arXiv Workflow | <https://github.com/AllanChain/zotero-arxiv-workflow> | 追踪正式发表，并合并预印本版本。 |
+| Zotero | HJFY Split Reader | <https://github.com/Infinity4B/zotero-hjfy-split-reader> | 在 Zotero 里并排看原文和译文。 |
+| Zotero | arxiv-marker | <https://github.com/lelelelelelelelelelelelele/arxiv-marker> | 给 arXiv 条目补会议、CCF/CORE 和引用。 |
+| Zotero | Citation Tally | <https://github.com/daeh/zotero-citation-tally> | 在 Zotero 列表里直接看多源引用量。 |
+| Zotero | Zotero-arXiv-Daily | <https://github.com/TideDra/zotero-arxiv-daily> | 用你的 Zotero 文库每天推荐新 arXiv。 |
+| Tool | ar5iv Editor | <https://latexml.rs/editor> | 浏览器里编辑 LaTeX，实时看 HTML/MathML。 |
+| Tool | ZoteroBib | <https://zbib.org/> | 不用装 Zotero，输入 DOI/URL 就出 BibTeX。 |
+| Tool | EasyRead | <https://github.com/Edwardxlai/easyread> | 本地双语阅读器，公式、批注和模型都能接。 |
 
 ## 本地预览与构建
 
@@ -147,6 +174,7 @@ npm run preview
 ```
 
 构建产物为仓库内的 `web/dist/`，预览地址为 <http://localhost:8081/>。端口占用时可运行 `npm run preview -- --port 8082`。
+构建时会同步生成油猴脚本的导航、图标与统计逻辑。也可单独运行 `npm run sync:userscript`，或使用 `npm run sync:userscript -- --check` 检查是否同步。
 
 GitHub Pages 工作流在 `web/` 中安装依赖并构建，发布 `web/dist/`。新站点地址为 <https://arxivhub.github.io/>，论文链接例如 <https://arxivhub.github.io/p/1706.03762>。`sync-arxivhub-pages.yml` 使用根路径 `/` 构建并同步到 `ArXivHub/ArXivHub.github.io`，需配置 `ARXIVHUB_DEPLOY_TOKEN`；`deploy-pages.yml` 保留源仓库的子路径部署。默认卡片顺序保存在 [default-tool-orders.json](web/src/lib/default-tool-orders.json)，本地排序后可保存并随代码发布；已有用户的个人排序优先。
 

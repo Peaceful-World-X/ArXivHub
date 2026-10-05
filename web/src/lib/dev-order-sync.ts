@@ -1,5 +1,4 @@
 import { useHub } from "./store";
-import { DEFAULT_FAVORITES } from "./tools";
 import { snapshotToolOrders } from "./tool-order";
 
 export function saveDefaultToolOrder(): Promise<void> {
@@ -19,22 +18,4 @@ export function saveDefaultToolOrder(): Promise<void> {
     hot.on("arxiv-hub:default-order-saved", onSaved);
     hot.send("arxiv-hub:save-default-order", { requestId, orders: snapshotToolOrders(pinned, toolOrders) });
   });
-}
-
-export function startDefaultOrderSync(): void {
-  // Browser-test fixtures must never become the published defaults.
-  if (!import.meta.env.DEV || !import.meta.hot || navigator.webdriver) return;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const schedule = () => {
-    clearTimeout(timer);
-    const { pinned, toolOrders } = useHub.getState();
-    const customized = Object.values(toolOrders).some((ids) => ids.length > 0)
-      || JSON.stringify(pinned) !== JSON.stringify(DEFAULT_FAVORITES.map((tool) => tool.id));
-    if (customized) timer = setTimeout(() => { void saveDefaultToolOrder().catch(() => {}); }, 400);
-  };
-  schedule();
-  const unsubscribe = useHub.subscribe((state, previous) => {
-    if (state.pinned !== previous.pinned || state.toolOrders !== previous.toolOrders) schedule();
-  });
-  import.meta.hot.dispose(() => { clearTimeout(timer); unsubscribe(); });
 }

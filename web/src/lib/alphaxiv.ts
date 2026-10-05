@@ -12,6 +12,19 @@ export type AlphaXivPreview = Record<string, unknown> & { universal_paper_id: st
 const previewCache = new Map<string, { value: AlphaXivPreview | null; at: number }>();
 const previewRequests = new Map<string, Promise<AlphaXivPreview | null>>();
 
+// Read the alphaXiv preview through Jina when the browser blocks alphaXiv's origin-restricted API.
+async function fetchAlphaXivReader(endpoint: string): Promise<unknown> {
+  const response = await fetch(`https://r.jina.ai/${endpoint}`, {
+    credentials: "omit", headers: { Accept: "text/plain" }, signal: AbortSignal.timeout(12000),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`alphaXiv Reader ${response.status}`);
+  const text = await response.text();
+  const marker = "Markdown Content:";
+  const body = text.includes(marker) ? text.slice(text.indexOf(marker) + marker.length).trim() : text.trim();
+  return JSON.parse(body);
+}
+
 export async function fetchAlphaXivPreview(rawId: string): Promise<AlphaXivPreview | null> {
   const id = normalizeId(rawId);
   const cached = previewCache.get(id);
@@ -20,12 +33,18 @@ export async function fetchAlphaXivPreview(rawId: string): Promise<AlphaXivPrevi
   let request = previewRequests.get(id);
   if (!request) {
     request = (async () => {
-      const response = await fetch(`https://api.alphaxiv.org/papers/v3/${encodeURIComponent(id)}/preview`, {
-        credentials: "omit", signal: AbortSignal.timeout(10000),
-      });
-      if (response.status === 404) return null;
-      if (!response.ok) throw new Error(`alphaXiv ${response.status}`);
-      const value: unknown = await response.json();
+      const endpoint = `https://api.alphaxiv.org/papers/v3/${encodeURIComponent(id)}/preview`;
+      let value: unknown;
+      try {
+        const response = await fetch(endpoint, { credentials: "omit", signal: AbortSignal.timeout(10000) });
+        if (response.status === 404) return null;
+        if (!response.ok) throw new Error(`alphaXiv ${response.status}`);
+        value = await response.json();
+      } catch (error) {
+        if (!(error instanceof TypeError) && !(error instanceof DOMException)) throw error;
+        value = await fetchAlphaXivReader(endpoint);
+        if (value === null) return null;
+      }
       if (!value || typeof value !== "object" || Array.isArray(value) || !("universal_paper_id" in value) ||
           typeof value.universal_paper_id !== "string" || normalizeId(value.universal_paper_id) !== id) {
         throw new Error("Invalid alphaXiv paper identity");

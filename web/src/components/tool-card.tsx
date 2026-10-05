@@ -1,6 +1,6 @@
 import { ArrowUpRight, Bookmark, BookmarkCheck, Check, Link2, FileText, Rss, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { CARD_COLORS } from "@/lib/card-colors";
+import { CARD_COLORS, favoriteColor } from "@/lib/card-colors";
 import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
 import { buildToolUrl, getGitHubRepository, type Tool, type ToolContext } from "@/lib/tools";
@@ -26,7 +26,6 @@ const ICON_OVERRIDES: Record<string, string> = {
   "emergent-mind": `${import.meta.env.BASE_URL}icons/emergent-mind.png`,
   "talk2arxiv": "https://www.talk2arxiv.org/favicon.ico",
   "immersive-translate": "https://app.immersivetranslate.com/favicon.ico",
-  "zotero-arxiv-reader": "https://github.com/favicon.ico",
   zotmeta: "https://github.com/favicon.ico",
   xiaohongshu: "https://www.xiaohongshu.com/favicon.ico",
 };
@@ -57,7 +56,7 @@ export function ToolIcon({ tool }: { tool: Tool }) {
   return (
     <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-white shadow-sm" aria-hidden="true">
       {tool.id === "chinarxiv" ? <span className="text-2xl leading-none">🌏</span> : GenericIcon ? <GenericIcon className="size-6 text-accent" /> : <>
-      {!loaded ? <img src={fallbackIcon} alt="" width="28" height="28" className="size-7 rounded-lg object-contain" /> : null}
+      {!loaded ? <img src={fallbackIcon} alt="" width="28" height="28" className="size-7 rounded-full object-contain" /> : null}
       <img
         src={iconSource}
         alt=""
@@ -69,7 +68,7 @@ export function ToolIcon({ tool }: { tool: Tool }) {
           if (iconSource !== fallbackIcon) setIconSource(fallbackIcon);
           else setLoaded(true);
         }}
-        className={cn("absolute size-7 rounded-lg object-contain", tool.id === "aimodels-fyi" && "bg-ink", !loaded && "opacity-0")}
+        className={cn("absolute size-7 rounded-full object-contain", tool.id === "aimodels-fyi" && "bg-ink", !loaded && "opacity-0")}
       />
       </>}
     </span>
@@ -158,7 +157,7 @@ export function ToolCard({ tool, ctx, compact = false, hrefOverride, reorderCont
   }
 
   return (
-    <article data-tool-id={tool.id} data-favorite={isPinned} style={isPinned && favoriteHue !== undefined ? { backgroundColor: `hsl(${favoriteHue} 65% 93%)` } : undefined} className="flex h-full flex-col rounded-sm border border-border bg-surface p-4 transition-colors duration-150 hover:border-border-strong">
+    <article data-tool-id={tool.id} data-favorite={isPinned} style={isPinned && favoriteHue !== undefined ? { backgroundColor: favoriteColor(favoriteHue) } : undefined} className="flex h-full flex-col rounded-sm border border-border bg-surface p-4 transition-colors duration-150 hover:border-border-strong">
       {reorderControls}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">

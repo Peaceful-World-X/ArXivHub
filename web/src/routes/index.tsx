@@ -6,14 +6,15 @@ import { ToolGrid } from "@/components/tool-grid";
 import { routeId } from "@/lib/arxiv";
 import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
-import { EXAMPLE_PAPERS, TOOLS } from "@/lib/tools";
+import { CATEGORIES, EXAMPLE_PAPERS, TOOLS } from "@/lib/tools";
 
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
   const lang = useHub((s) => s.lang);
   const t = i18n[lang];
-  const toolCount = TOOLS.filter((tool) => tool.category === "agent" || tool.category === "zotero").length;
+  const toolCount = TOOLS.filter(({ category }) => ["agent", "zotero", "tool"].includes(category)).length;
+  const categoryCount = CATEGORIES.length - 1;
   const introRef = useRef<HTMLElement>(null);
   const toolsRef = useRef<HTMLElement>(null);
 
@@ -53,6 +54,8 @@ function Home() {
           {TOOLS.length - toolCount} {t.websites}
           <span className="mx-2 text-subtle">·</span>
           {toolCount} {t.repositoryTools}
+          <span className="mx-2 text-subtle">·</span>
+          {categoryCount} {t.categoriesCount}
         </p>
         <h1 className="home-title font-display">
           {t.tagline}

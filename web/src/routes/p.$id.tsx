@@ -15,7 +15,6 @@ import { ToolIcon } from "@/components/tool-card";
 import { Button } from "@/components/ui/button";
 import {
   bibtexFor,
-  arxivDoi,
   formatDate,
   fromRouteId,
   fetchArxivPaper,
@@ -29,14 +28,12 @@ import { fetchArxivTldr } from "@/lib/arxiv-tldr";
 import { PaperAiLinks } from "@/components/paper-ai-links";
 import { InstallGuide } from "@/components/install-guide";
 import { PaperMetrics } from "@/components/paper-metrics";
+import { PAPER_QUICK_IDS, PAPER_SOCIAL_IDS, DOCUMENT_ACTIONS, documentLinkUrl, paperDoi } from "@/lib/paper-navigation";
 
 export const Route = createFileRoute("/p/$id")({ component: PaperPage });
 
-const QUICK_TOOLS = [
-  "alphaxiv", "paperlayer", "hjfy", "papers-cool", "pith",
-  "pwc", "catalyzex", "pubpeer", "openreview", "emergent-mind",
-].map((id) => TOOLS.find((tool) => tool.id === id)!);
-const SOCIAL_TOOLS = ["xiaohongshu", "x-search", "reddit-search", "zhihu-search", "hf-papers", "google-scholar"].map((id) => TOOLS.find((tool) => tool.id === id)!);
+const QUICK_TOOLS = PAPER_QUICK_IDS.map((id) => TOOLS.find((tool) => tool.id === id)!);
+const SOCIAL_TOOLS = PAPER_SOCIAL_IDS.map((id) => TOOLS.find((tool) => tool.id === id)!);
 const quickLinkClass = "inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-accent focus-visible:outline-2 focus-visible:outline-accent";
 
 function PaperPage() {
@@ -102,8 +99,10 @@ function PaperPage() {
   );
 
   const extras = EXTRAS.filter((e) => e.paperId === id);
-  const doi = paper?.doi?.trim() || arxivDoi(id.replace(/v\d+$/i, ""));
-  const doiUrl = `https://doi.org/${encodeURIComponent(doi).replaceAll("%2F", "/")}`;
+  const documentTitles = {
+    pdf: t.pdf, html: t.html, md: t.markdown, src: t.texSource,
+    tb: t.trackbacks, doi: `DOI: ${paperDoi(ctx)}`, bibtex: t.copyBib,
+  };
   const version = paper?.versionId.match(/v(\d+)$/)?.[1];
   const authorText = paper
     ? paper.authors.length > 1
@@ -135,13 +134,11 @@ function PaperPage() {
           <div className="flex max-w-full min-w-0 flex-wrap items-center gap-3" data-testid="paper-document-actions">
             <a href={`https://arxiv.org/abs/${id}`} target="_blank" rel="noreferrer" className="shrink-0 font-sans text-base font-bold text-accent no-underline sm:text-lg">arXiv:{id}</a>
             <div className="flex max-w-full min-w-0 items-center gap-1 overflow-x-auto">
-              <a href={`https://arxiv.org/pdf/${id}`} target="_blank" rel="noreferrer" aria-label={t.pdf} title={t.pdf} className={quickLinkClass}><span className="font-sans text-xs font-bold">PDF</span></a>
-              <a href={`https://arxiv.org/html/${id}`} target="_blank" rel="noreferrer" aria-label={t.html} title={t.html} className={quickLinkClass}><span className="font-sans text-xs font-bold">HTML</span></a>
-              <a href={`https://www.arxiv2md.org/api/markdown?url=${encodeURIComponent(id)}`} target="_blank" rel="noreferrer" aria-label={t.markdown} title={t.markdown} className={quickLinkClass}><span className="font-sans text-xs font-bold">MD</span></a>
-              <a href={`https://arxiv.org/src/${id}`} target="_blank" rel="noreferrer" aria-label={t.texSource} title={t.texSource} className={quickLinkClass}><span className="font-sans text-xs font-bold">TeX</span></a>
-              <a href={`https://arxiv.org/tb/${id}`} target="_blank" rel="noreferrer" aria-label={t.trackbacks} title={t.trackbacks} className={quickLinkClass}><span className="font-sans text-xs font-bold">TB</span></a>
-              <a href={doiUrl} target="_blank" rel="noopener noreferrer" aria-label="DOI" title={`DOI: ${doi}`} className={quickLinkClass}><span className="font-sans text-xs font-bold">DOI</span></a>
-              <Button variant="ghost" size="icon" className="shrink-0 rounded-full" title={t.copyBib} aria-label={t.copyBib} disabled={!paper} onClick={() => paper && void copyText(bibtexFor(paper), t.copied)}><span className="font-sans text-xs font-bold">BibTex</span></Button>
+              {DOCUMENT_ACTIONS.map((action) => action.id === "bibtex" || action.id === "doi" ? (
+                <Button key={action.id} variant="ghost" size="icon" className="shrink-0 rounded-full" title={documentTitles[action.id]} aria-label={action.id === "doi" ? "DOI" : documentTitles[action.id]} disabled={!paper} onClick={() => paper && void copyText(action.id === "doi" ? documentLinkUrl("doi", ctx)! : bibtexFor(paper), t.copied)}><span className="font-sans text-xs font-bold">{action.label}</span></Button>
+              ) : (
+                <a key={action.id} href={documentLinkUrl(action.id, ctx)!} target="_blank" rel="noreferrer" aria-label={documentTitles[action.id]} title={documentTitles[action.id]} className={quickLinkClass}><span className="font-sans text-xs font-bold">{action.label}</span></a>
+              ))}
             </div>
           </div>
           <nav aria-label={t.quickLinks} className="ml-auto flex max-w-full min-w-0 items-center gap-1 overflow-x-auto py-1">

@@ -4,12 +4,15 @@ import { Shell } from "@/components/shell";
 import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
 import { CATEGORIES, TOOLS } from "@/lib/tools";
-import { DIRECTORY_DESCRIPTIONS } from "@/lib/directory-descriptions";
 
 export const Route = createFileRoute("/about")({ component: About });
 
 const groups = CATEGORIES.filter((category) => category.id !== "all")
-  .map((category) => ({ ...category, tools: TOOLS.filter((tool) => tool.category === category.id) }))
+  .map((category) => ({
+    ...category,
+    tools: TOOLS.filter((tool) => tool.category === category.id)
+      .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }) || a.id.localeCompare(b.id)),
+  }))
   .filter((group) => group.tools.length > 0);
 const numbers = new Map(groups.flatMap((group) => group.tools).map((tool, index) => [tool.id, index + 1]));
 
@@ -24,6 +27,7 @@ function About() {
           <h1 className="font-display text-3xl leading-tight">{t.aboutHeading}</h1>
         </div>
         <p className="mt-4 text-base leading-relaxed text-muted">{t.aboutBody}</p>
+        <p className="mt-3 text-sm leading-relaxed text-muted" data-testid="inclusion-policy">{t.inclusionPolicy}</p>
         <aside className="star-support" aria-label={t.supportLabel} data-testid="star-support">
           <Star className="size-5 self-center text-accent" aria-hidden="true" />
           <p className="self-center text-muted"><strong className="font-medium text-ink">{t.supportTitle}</strong> {t.supportBody}</p>
@@ -62,7 +66,7 @@ function About() {
                       <td className="px-2 py-3 align-top tabular-nums text-subtle">{numbers.get(tool.id)}</td>
                       <td className="px-2 py-3 align-top font-medium text-ink"><a href={tool.home} target="_blank" rel="noreferrer" className="hover:text-accent">{lang === "zh" ? tool.nameZh : tool.name}</a></td>
                       <td className="px-2 py-3 align-top"><a href={tool.home} target="_blank" rel="noreferrer" className="font-mono text-xs text-accent underline-offset-4 hover:underline">{tool.home}</a></td>
-                      <td className="px-2 py-3 align-top leading-relaxed text-muted">{DIRECTORY_DESCRIPTIONS[tool.id]?.[lang] ?? (lang === "zh" ? tool.blurbZh : tool.blurb)}</td>
+                      <td className="px-2 py-3 align-top leading-relaxed text-muted">{lang === "zh" ? tool.blurbZh : tool.blurb}</td>
                     </tr>
                   ))}
                 </tbody>

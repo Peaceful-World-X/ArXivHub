@@ -13,8 +13,17 @@ try {
   const ids = () => page.locator('article').evaluateAll((cards) => cards.map((card) => card.dataset.toolId));
   assert.ok(defaults.all?.length > 0, 'A real browser order snapshot must be captured before release');
   assert.deepEqual(await ids(), defaults.all);
-  for (const [category, name] of [['ai', 'AIChat'], ['search', '检索'], ['discussion', '讨论'], ['zotero', 'Zotero']]) {
-    await page.getByRole('button', { name, exact: true }).click();
+  const categories = [
+    ['source', '原文', 6], ['ai-summary', 'AI解读', 14], ['ai-chat', 'AI问答', 7],
+    ['search', '检索', 19], ['discussion', '讨论', 10], ['translate', '翻译', 4],
+    ['discover', '发现', 13], ['subscribe', '订阅', 8], ['xiv', 'Xiv宇宙', 17],
+    ['agent', 'Agent', 9], ['zotero', 'Zotero', 6], ['tool', 'Tool', 3],
+  ];
+  assert.deepEqual(Object.keys(defaults), ['all', ...categories.map(([category]) => category), 'favorites']);
+  for (const [category, name, count] of categories) {
+    await page.locator(`button[data-category="${category}"]`).click();
+    assert.equal(await page.locator(`button[data-category="${category}"]`).getAttribute('aria-label'), name);
+    assert.equal(defaults[category].length, count);
     assert.deepEqual(await ids(), defaults[category]);
   }
   const trigger = page.locator('header').getByRole('button', { name: '安装浏览器插件', exact: true });
@@ -48,7 +57,9 @@ try {
     localStorage.setItem('arxiv-hub', JSON.stringify(saved));
   }, custom);
   await page.reload();
-  assert.deepEqual(await ids(), custom);
+  const pinned = await page.evaluate(() => JSON.parse(localStorage.getItem('arxiv-hub')).state.pinned);
+  const favoriteOrder = defaults.favorites.filter((id) => pinned.includes(id));
+  assert.deepEqual(await ids(), [...pinned.filter((id) => !favoriteOrder.includes(id)), ...favoriteOrder, ...custom.filter((id) => !pinned.includes(id))]);
   await page.getByRole('button', { name: '调整顺序', exact: true }).click();
   if (!process.env.ARXIVHUB_PRODUCTION) assert.equal(await page.getByRole('button', { name: '保存为发布默认顺序', exact: true }).count(), 1);
   else assert.equal(await page.getByRole('button', { name: '保存为发布默认顺序', exact: true }).count(), 0);
