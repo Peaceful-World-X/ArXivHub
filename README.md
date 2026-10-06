@@ -13,6 +13,7 @@
     <a href="https://github.com/Peaceful-World-X/ArXivHub/stargazers"><img src="https://img.shields.io/github/stars/Peaceful-World-X/ArXivHub?style=flat&amp;color=b31b1b&amp;label=Stars" alt="Stars"></a>
     <a href="https://arxivhub.github.io/"><img src="https://visitor-badge.laobi.icu/badge?page_id=Peaceful-World-X.ArXivHub&amp;left_color=%236B5B52&amp;right_color=%23D97757" alt="访问数"></a>
     <a href="https://github.com/Peaceful-World-X/ArXivHub/issues"><img src="https://img.shields.io/github/issues/Peaceful-World-X/ArXivHub?style=flat&amp;color=b31b1b&amp;label=Issues" alt="Issues"></a>
+    <a href="https://linux.do"><img src="https://shorturl.at/ggSqS" alt="LINUX DO"></a>
   </p>
 </div>
 
