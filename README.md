@@ -12,16 +12,16 @@
   <p>
     <a href="https://github.com/Peaceful-World-X/ArXivHub/stargazers"><img src="https://img.shields.io/github/stars/Peaceful-World-X/ArXivHub?style=flat&amp;color=b31b1b&amp;label=Stars" alt="Stars"></a>
     <a href="https://arxivhub.github.io/"><img src="https://visitor-badge.laobi.icu/badge?page_id=Peaceful-World-X.ArXivHub&amp;left_color=%236B5B52&amp;right_color=%23D97757" alt="访问数"></a>
-    <a href="https://github.com/Peaceful-World-X/ArXivHub/issues"><img src="https://img.shields.io/github/issues/Peaceful-World-X/ArXivHub?style=flat&amp;color=b31b1b&amp;label=Issues" alt="Issues"></a>
     <a href="https://linux.do"><img src="https://shorturl.at/ggSqS" alt="LINUX DO"></a>
+    <a href="https://www.nodeseek.com"><img src="public/badges/nodeseek.svg" alt="NodeSeek BBS" width="115" height="20"></a>
   </p>
 </div>
 
-## 首页
+![ArXiv Hub · 论桥首页横屏预览](images/main.png)
 
-![ArXiv Hub · 论桥首页](images/cn.png)
+[输入论文](images/paper-input.png) · [论文页面](images/paper-detail.png) · [工具分类](images/tool-categories.png) · [项目宣传图](images/project-promo.png)
 
-[英文首页](images/en.png) · [论文页面](images/paper.png)
+配图取自项目宣传视频，为基于真实页面素材制作的 16:9 横屏展示图。
 
 ## 安装脚本
 
@@ -30,6 +30,8 @@
 3. 刷新 arXiv 论文页即可使用。[查看脚本效果](images/002.png)
 
 脚本同步论文页入口、引用数和点赞数。点击圆形「＋」可添加或管理自定义网站，网址支持 `{id}`、`{title}`、`{url}`、`{doi}`，设置保存在浏览器中。
+
+![ArXiv Hub 浏览器脚本运行演示与导航细节放大](images/script.png)
 
 ## 网址清单
 
