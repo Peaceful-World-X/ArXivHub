@@ -20,9 +20,11 @@
 
 ![ArXiv Hub · 论桥首页横屏预览](images/main.png)
 
+<div align="center">
+
 [输入论文](images/paper-input.png) · [论文页面](images/paper-detail.png) · [工具分类](images/tool-categories.png) · [项目宣传图](images/project-promo.png)
 
-配图取自项目宣传视频，为基于真实页面素材制作的 16:9 横屏展示图。
+</div>
 
 ## 安装脚本
 
@@ -33,6 +35,10 @@
 脚本同步论文页入口、引用数和点赞数。点击圆形「＋」可添加或管理自定义网站，网址支持 `{id}`、`{title}`、`{url}`、`{doi}`，设置保存在浏览器中。
 
 ![ArXiv Hub 浏览器脚本运行演示与导航细节放大](images/script.png)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=Peaceful-World-X/arxivhub&type=date)](https://www.star-history.com/?repos=Peaceful-World-X/llm-eval&type=date)
 
 ## 网址清单
 
@@ -158,6 +164,7 @@
 | Tool | ar5iv Editor | <https://latexml.rs/editor> | 浏览器里编辑 LaTeX，实时看 HTML/MathML。 |
 | Tool | ZoteroBib | <https://zbib.org/> | 不用装 Zotero，输入 DOI/URL 就出 BibTeX。 |
 | Tool | EasyRead | <https://github.com/Edwardxlai/easyread> | 本地双语阅读器，公式、批注和模型都能接。 |
+
 
 ## 本地预览与构建
 
