@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 const source = await readFile(new URL('../../ArXivHub.user.js', import.meta.url), 'utf8');
 const hjfyIcon = await readFile(new URL('../../public/icons/hjfy.svg', import.meta.url), 'utf8');
 const hubIcon = await readFile(new URL('../../public/favicon.svg', import.meta.url), 'utf8');
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, chromiumSandbox: true, args: ['--disable-dev-shm-usage'] });
 const fixture = (sidebar = true) => `<!doctype html><html><head><meta name="citation_title" content="Attention Is All You Need"><meta name="citation_author" content="Ashish Vaswani"><meta name="citation_date" content="2017-06-12"><style>
 body{margin:0;font:16px Arial;background:white;color:#222}main{max-width:1120px;margin:32px auto;display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:32px;padding:0 20px}.extra-services{min-width:0}h1{font-size:28px}.full-text,.native-links{padding:12px;border-bottom:1px solid #ddd}h2{font-size:18px}a{color:#b31b1b}@media(max-width:640px){main{display:block}.extra-services{margin-top:24px}}
 </style></head><body><main><article id="native-paper"><h1 class="title"><span class="descriptor">Title:</span>Attention Is All You Need</h1><p>Ashish Vaswani et al.</p><h2>Abstract</h2><p>The Transformer is based solely on attention mechanisms.</p></article>${sidebar ? '<aside class="extra-services"><section class="full-text" id="native-access"><h2>Access Paper</h2><a href="https://arxiv.org/pdf/1706.03762">View PDF</a><a href="https://arxiv.org/html/1706.03762v7">HTML</a><a href="/src/1706.03762">TeX Source</a></section><section class="native-links" id="native-links">References and citations</section></aside>' : ''}</main></body></html>`;
@@ -22,6 +22,12 @@ async function prepare(context, mode = 'ready') {
     const values = new Map();
     window.__gmMode = mode;
     window.__gmRequests = [];
+    window.__gmPending = new Set();
+    window.__gmHold = false;
+    window.__gmRelease = () => {
+      window.__gmHold = false;
+      for (const respond of [...window.__gmPending]) respond();
+    };
     window.__gmHtmlRequests = 0;
     window.__unexpectedRequests = [];
     window.__gmWrites = [];
@@ -38,18 +44,21 @@ async function prepare(context, mode = 'ready') {
       const title = document.querySelector('meta[name="citation_title"]')?.content || 'Paper title';
       const hashes = { '1706.03762': '204e3073870fae3d05bcbc2f6a8e263d9b72e776', '2303.08774': '163b4d6a79a5b19af88b8585456363340d9efd04', '2608.05594': 'a5641fd9bbe87d5da393ea06817a9bd325acd07b' };
       const hash = hashes[id] || 'd'.repeat(40), paperUrl = `https://www.semanticscholar.org/paper/${hash}`;
-      const count = window.__gmMode === 'zero' ? 0 : 1234;
+      const count = window.__gmMode === 'zero' ? 0 : window.__gmMode === 'cache-updated' ? 2345 : 1234;
       const url = new URL(options.url);
       let status = 200, responseText;
-      if (url.hostname === 'api.semanticscholar.org') {
+      if (url.hostname === 'api.semanticscholar.org' || options.url.startsWith('https://r.jina.ai/https://api.semanticscholar.org/')) {
         const isTldr = (url.searchParams.get('fields') || '').includes('tldr');
         if (isTldr && window.__gmMode === 'rate_limit') status = 429;
         if (!isTldr && window.__gmMode === 'missing') status = 404;
         responseText = JSON.stringify({ paperId: hash, title, externalIds: { ArXiv: id }, citationCount: count,
-          url: paperUrl, tldr: { text: 'A verified summary fixture describing the paper and its key ideas.', model: 'test' } });
-      } else if (url.hostname === 'api.alphaxiv.org') {
+          url: paperUrl, tldr: { text: window.__gmMode.startsWith('math')
+            ? String.raw`The model $\pi_{0.5}$ predicts $x_i^2$ with $\alpha \leq \beta$ and preserves $\unknown{a}$ literally.`
+            : window.__gmMode === 'cache-updated' ? 'The updated Semantic Scholar summary replaces the previous successful summary.'
+            : 'A verified summary fixture describing the paper and its key ideas.', model: 'test' } });
+      } else if (url.hostname === 'api.alphaxiv.org' || options.url.startsWith('https://r.jina.ai/https://api.alphaxiv.org/')) {
         if (window.__gmMode === 'missing') status = 404;
-        responseText = JSON.stringify({ universal_paper_id: id, title, metrics: { public_total_votes: window.__gmMode === 'zero' ? 0 : 90 } });
+        responseText = JSON.stringify({ universal_paper_id: id, title, metrics: { public_total_votes: window.__gmMode === 'zero' ? 0 : window.__gmMode === 'cache-updated' ? 91 : 90 } });
       } else if (options.url.startsWith('https://r.jina.ai/https://www.semanticscholar.org/')) {
         if (window.__gmMode === 'missing') status = 404;
         const sourceUrl = options.url.slice('https://r.jina.ai/'.length);
@@ -69,17 +78,40 @@ async function prepare(context, mode = 'ready') {
       } else if (url.hostname === 'cdn.hjfy.top') {
         responseText = hjfyIcon;
       } else if (options.url.includes('arxivtldr.org')) {
-        responseText = '<html><body><h2>TLDR</h2><p>A concise research summary fixture with enough content for the existing parser. A second sentence should not be displayed.</p><h2>Key contributions</h2><ul><li>The paper presents a new approach to sequence modeling.</li></ul><h2>Why it matters</h2><p>This approach improves research and practical applications.</p></body></html>';
+        if (window.__gmMode.startsWith('math')) {
+          const text = String.raw`本文提出了一种视觉-语言-动作模型 $\pi_{0.5}$，该模型通过协同训练实现了机器人操作的开放世界泛化。第二句仍属首段，应完整显示。`;
+          const isReader = url.hostname === 'r.jina.ai';
+          responseText = window.__gmMode === 'math-reader' && !isReader ? '<div>Loading</div>'
+            : isReader ? `TL;DR\n-----\n${text}\n\n第二段不应显示。\n### Another section\nDo not show this section.`
+            : `<h2>TLDR</h2><p>${text}</p><p>第二段不应显示。</p>`;
+        } else if (window.__gmMode === 'cache-updated') {
+          responseText = '<h2>TLDR</h2><p>The updated ArXiv summary replaces the previous successful summary. Another sentence in this paragraph remains visible.</p>';
+        } else {
+          responseText = '<html><body><h2>TLDR</h2><p>A concise research summary fixture with enough content for the existing parser. A second sentence in the first paragraph remains visible.</p><h2>Key contributions</h2><ul><li>The paper presents a new approach to sequence modeling.</li></ul><h2>Why it matters</h2><p>This approach improves research and practical applications.</p></body></html>';
+        }
       } else if (url.hostname === 'arxiv.org' && url.pathname.startsWith('/bibtex/')) {
         responseText = `@article{arxiv${id.replaceAll('.', '')},\n title={${title}},\n author={Ashish Vaswani},\n eprint={${id}},\n archivePrefix={arXiv}\n}`;
       } else {
         window.__unexpectedRequests.push(options.url); status = 503; responseText = 'Unmocked GM request';
       }
-      const timer = setTimeout(() => {
-        options.onload?.({ status, responseText, response: options.responseType === 'json' ? JSON.parse(responseText) : responseText,
+      const cacheResource = /semanticscholar\.org|api\.alphaxiv\.org|arxivtldr\.org|api\.openalex\.org/.test(options.url);
+      const networkError = cacheResource && window.__gmMode === 'cache-error';
+      if (cacheResource && window.__gmMode === 'cache-empty') {
+        if (options.url.includes('arxivtldr.org')) responseText = '<h2>Original Abstract</h2><p>No summary is available.</p>';
+        else if (options.url.includes('api.semanticscholar.org') && options.url.includes('tldr')) responseText = '{"tldr":null}';
+        else if (!options.url.includes('api.openalex.org')) { status = 404; responseText = '{}'; }
+      }
+      let timer;
+      const respond = () => {
+        if (!window.__gmPending.delete(respond)) return;
+        clearTimeout(timer);
+        if (networkError) options.onerror?.({ error: 'Mock network failure' });
+        else options.onload?.({ status, responseText, response: options.responseType === 'json' ? JSON.parse(responseText) : responseText,
           finalUrl: options.url, responseHeaders: status === 429 ? 'Retry-After: 60' : 'Content-Type: text/plain' });
-      }, 10);
-      return { abort: () => clearTimeout(timer) };
+      };
+      window.__gmPending.add(respond);
+      if (!window.__gmHold) timer = setTimeout(respond, 10);
+      return { abort: () => { clearTimeout(timer); window.__gmPending.delete(respond); } };
     };
   }, { mode, hjfyIcon });
 }
@@ -170,8 +202,8 @@ try {
   await semantic.getByText('A verified summary fixture describing the paper and its key ideas.', { exact: true }).waitFor();
   const tldr = page.locator('#arxivtldr-sidebar-card');
   assert.equal(await tldr.getByRole('button').getAttribute('aria-expanded'), 'true');
-  await tldr.getByText('A concise research summary fixture with enough content for the existing parser.', { exact: true }).waitFor();
-  assert.doesNotMatch(await tldr.innerText(), /second sentence|Key contributions|Why it matters/);
+  await tldr.getByText('A concise research summary fixture with enough content for the existing parser. A second sentence in the first paragraph remains visible.', { exact: true }).waitFor();
+  assert.doesNotMatch(await tldr.innerText(), /Second paragraph|Key contributions|Why it matters/);
   await tldr.getByRole('button').click();
   await semantic.getByRole('button').click();
   assert.equal(await semantic.getByRole('button').getAttribute('aria-expanded'), 'false');
@@ -261,8 +293,10 @@ try {
   await page.evaluate(() => Promise.all(window.__gmWrites));
   await page.goto('https://arxiv.org/abs/1706.03762v7');
   await inject(page);
-  await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => window.__gmRequests.length), 0);
+  await page.waitForFunction(() => window.__gmRequests.some((url) => url.includes('arxivtldr.org')) &&
+    window.__gmRequests.some((url) => url.includes('api.alphaxiv.org')) &&
+    window.__gmRequests.some((url) => url.includes('api.semanticscholar.org') && url.includes('tldr')) &&
+    window.__gmRequests.some((url) => url.startsWith('https://r.jina.ai/https://www.semanticscholar.org/')));
   assert.equal(await page.locator('#arxivhub-bookmarks').count(), 1);
   assert.equal(await custom.count(), 1);
   assert.equal(new URL(await custom.getAttribute('href')).searchParams.get('id'), '1706.03762');
@@ -312,6 +346,185 @@ try {
   await latePage.getByText('A verified summary fixture describing the paper and its key ideas.', { exact: true }).waitFor();
   await late.close();
 
+  for (const mode of ['math-direct', 'math-reader']) {
+    const mathContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await prepare(mathContext, mode);
+    await mathContext.route('https://arxiv.org/abs/**', (route) => route.fulfill({ contentType: 'text/html', body: fixture() }));
+    const mathPage = await mathContext.newPage();
+    const mathErrors = [];
+    mathPage.on('pageerror', (error) => mathErrors.push(error.message));
+    await mathPage.goto('https://arxiv.org/abs/2504.16054');
+    await inject(mathPage);
+    const mathCard = mathPage.locator('#arxivtldr-sidebar-card');
+    const paragraph = mathCard.locator('[data-arxivtldr-body] p');
+    await paragraph.locator('sub').waitFor();
+    assert.equal(await paragraph.locator('sub').textContent(), '0.5');
+    assert.equal(await paragraph.textContent(), '本文提出了一种视觉-语言-动作模型 π0.5，该模型通过协同训练实现了机器人操作的开放世界泛化。第二句仍属首段，应完整显示。');
+    assert.doesNotMatch(await mathCard.innerText(), /第二段|Do not show|\\pi|\$/);
+    const requests = await mathPage.evaluate(() => window.__gmRequests.filter((url) => url.includes('arxivtldr.org')));
+    assert.equal(requests.length, mode === 'math-reader' ? 2 : 1);
+    if (mode === 'math-reader') {
+      assert.match(requests[1], /^https:\/\/r\.jina\.ai\//);
+      const cached = await mathPage.evaluate(() => JSON.parse(localStorage.getItem('arxivtldr-cache-v3:2504.16054')).data.tldr);
+      assert.ok(cached.includes(String.raw`$\pi_{0.5}$`));
+    }
+    const mathSemantic = mathPage.locator('#zotero-style-tldr-sidebar-card');
+    await mathSemantic.getByRole('button').click();
+    const semanticParagraph = mathSemantic.locator('[data-semantic-tldr-body] p');
+    await semanticParagraph.locator('sup').waitFor();
+    assert.deepEqual(await semanticParagraph.locator('sub').allTextContents(), ['0.5', 'i']);
+    assert.equal(await semanticParagraph.locator('sup').textContent(), '2');
+    assert.match(await semanticParagraph.textContent(), /α ≤ β/);
+    assert.ok((await semanticParagraph.textContent()).includes(String.raw`$\unknown{a}$`));
+    for (const width of [1280, 390, 320]) {
+      await mathPage.setViewportSize({ width, height: 900 });
+      assert.equal(await mathPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    }
+    if (mode === 'math-direct') {
+      await mathCard.evaluate((card) => {
+        const label = document.createElement('p');
+        label.textContent = '回归测试预览 · 模拟摘要';
+        label.style.cssText = 'color:#b31b1b;font:12px sans-serif;margin:6px';
+        card.append(label);
+      });
+      for (const [name, width] of [['desktop', 1280], ['mobile', 390]]) {
+        await mathPage.setViewportSize({ width, height: 900 });
+        await mathCard.screenshot({ path: new URL(`../../screenshots/tldr-math-${name}-preview.png`, import.meta.url).pathname });
+      }
+    }
+    assert.deepEqual(mathErrors, []);
+    await mathPage.reload();
+    await mathPage.evaluate(() => { window.__gmHold = true; });
+    await inject(mathPage);
+    await mathPage.locator('#arxivtldr-sidebar-card sub').waitFor();
+    assert.equal(await mathPage.evaluate(() => window.__gmRequests.filter((url) => url.includes('arxivtldr.org')).length), 1, 'cached math remains rendered while direct revalidation is pending');
+    await mathPage.evaluate(() => window.__gmRelease());
+    await mathPage.waitForFunction((expected) => window.__gmRequests.filter((url) => url.includes('arxivtldr.org')).length === expected && window.__gmPending.size === 0, mode === 'math-reader' ? 2 : 1);
+    await mathContext.close();
+  }
+
+  const cacheContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await prepare(cacheContext);
+  await cacheContext.route('https://arxiv.org/abs/**', (route) => route.fulfill({ contentType: 'text/html', body: fixture() }));
+  const cachePage = await cacheContext.newPage();
+  const cacheErrors = [];
+  cachePage.on('pageerror', (error) => cacheErrors.push(error.message));
+  const cacheId = '1706.03762';
+  const oldAt = 1_600_000_000_000;
+  const cacheKeys = {
+    citations: `arxivhub:semantic-scholar-page:v1:${cacheId}`,
+    likes: `arxivhub:alphaxiv-likes:v1:${cacheId}`,
+    arxiv: `arxivtldr-cache-v3:${cacheId}`,
+    semantic: `semantic-scholar-tldr-cache-v2:${cacheId}`,
+  };
+  const oldArxiv = 'The indefinitely cached ArXiv summary remains visible during every refresh.';
+  const oldSemantic = 'The indefinitely cached Semantic Scholar summary remains visible during every refresh.';
+  const newArxiv = 'The updated ArXiv summary replaces the previous successful summary. Another sentence in this paragraph remains visible.';
+  const newSemantic = 'The updated Semantic Scholar summary replaces the previous successful summary.';
+  await cachePage.goto(`https://arxiv.org/abs/${cacheId}v7`);
+  await cachePage.evaluate(() => window.__gmReady);
+  await cachePage.evaluate(({ keys, id, oldAt, oldArxiv, oldSemantic }) => {
+    const paperId = '204e3073870fae3d05bcbc2f6a8e263d9b72e776';
+    window.GM_setValue(`arxivhub-metrics:${keys.citations}`, JSON.stringify({ value: { paperId, citationCount: 17 }, at: oldAt }));
+    window.GM_setValue(`arxivhub-metrics:${keys.likes}`, JSON.stringify({ value: 4, at: oldAt }));
+    // Old version-specific records must migrate without renewing their timestamps.
+    localStorage.setItem(`${keys.arxiv}v3`, JSON.stringify({ data: { tldr: oldArxiv }, savedAt: oldAt }));
+    localStorage.setItem(`${keys.semantic}v9`, JSON.stringify({ data: { text: oldSemantic, url: `https://www.semanticscholar.org/paper/${paperId}` }, savedAt: oldAt }));
+    // A newer fallback count cannot displace a verified Semantic Scholar success.
+    window.GM_setValue(`arxivhub-metrics:arxivhub:openalex-citations:v1:${id}`, JSON.stringify({ value: { citationCount: 9999, url: 'https://openalex.org/W123456' }, at: Date.now() - 1000 }));
+  }, { keys: cacheKeys, id: cacheId, oldAt, oldArxiv, oldSemantic });
+  const cacheArxiv = cachePage.locator('#arxivtldr-sidebar-card');
+  const cacheSemantic = cachePage.locator('#zotero-style-tldr-sidebar-card');
+  const cacheMetrics = cachePage.locator('#arxivhub-paper-metrics');
+  const cacheSnapshot = () => cachePage.evaluate((keys) => Object.fromEntries(Object.entries(keys).map(([name, key]) => [name,
+    name === 'arxiv' || name === 'semantic' ? window.GM_getValue(key) : JSON.parse(window.GM_getValue(`arxivhub-metrics:${key}`)),
+  ])), cacheKeys);
+  async function assertCachedView(citations, likes, arxivText, semanticText) {
+    assert.deepEqual(await cacheMetrics.locator('[data-metric]').evaluateAll((links) => links.map((link) => link.dataset.count)), [String(citations), String(likes)]);
+    assert.match(await cacheMetrics.locator('[data-metric="citations"]').getAttribute('title'), /Semantic Scholar/);
+    assert.equal(await cacheArxiv.locator('[data-arxivtldr-body] p').textContent(), arxivText);
+    assert.equal(await cacheSemantic.locator('[data-semantic-tldr-body] p').textContent(), semanticText);
+    assert.equal(await cacheSemantic.locator('a').getAttribute('href'), 'https://www.semanticscholar.org/paper/204e3073870fae3d05bcbc2f6a8e263d9b72e776');
+  }
+  async function startCachedVisit(mode, suffix = '') {
+    await cachePage.evaluate(() => Promise.all(window.__gmWrites));
+    await cachePage.goto(`https://arxiv.org/abs/${cacheId}${suffix}`);
+    await cachePage.evaluate((mode) => { window.__gmMode = mode; window.__gmHold = true; }, mode);
+    await inject(cachePage);
+    await cachePage.waitForFunction(() => window.__gmRequests.some((url) => url.includes('arxivtldr.org')) &&
+      window.__gmRequests.some((url) => url.includes('api.alphaxiv.org')) &&
+      window.__gmRequests.some((url) => url.includes('api.semanticscholar.org') && url.includes('tldr')) &&
+      window.__gmRequests.some((url) => url.startsWith('https://r.jina.ai/https://www.semanticscholar.org/')));
+    const requests = await cachePage.evaluate(() => window.__gmRequests.map((url) => decodeURIComponent(url)));
+    assert.ok(requests.every((url) => !/1706\.03762v\d+/.test(url)), 'refreshes use canonical IDs');
+    assert.equal(requests.filter((url) => url.includes('api.openalex.org')).length, 0, 'Semantic Scholar cache remains preferred');
+  }
+  async function finishFailedRefresh() {
+    await cachePage.evaluate(() => window.__gmRelease());
+    await cachePage.waitForFunction(() => document.querySelector('[data-metric="citations"]')?.title.includes('更新失败') && window.__gmPending.size === 0);
+    assert.deepEqual(await cachePage.evaluate(() => window.__unexpectedRequests), []);
+    assert.equal(await cachePage.evaluate(() => window.__gmRequests.filter((url) => url.includes('api.openalex.org')).length), 0);
+  }
+  let retained;
+  for (const [mode, suffix] of [['cache-error', 'v7'], ['cache-empty', '']]) {
+    await startCachedVisit(mode, suffix);
+    await assertCachedView(17, 4, oldArxiv, oldSemantic);
+    const initial = await cacheSnapshot();
+    assert.deepEqual([initial.citations.at, initial.likes.at, initial.arxiv.savedAt, initial.semantic.savedAt], [oldAt, oldAt, oldAt, oldAt]);
+    if (retained) assert.deepEqual(initial, retained);
+    await finishFailedRefresh();
+    await assertCachedView(17, 4, oldArxiv, oldSemantic);
+    assert.deepEqual(await cacheSnapshot(), initial, `${mode} must preserve the actual last-success timestamps`);
+    retained = initial;
+  }
+  // Expansion refreshes even a successful cache, but never blanks either card.
+  await cachePage.evaluate(() => { window.__gmMode = 'cache-updated'; window.__gmHold = true; window.__gmRequests = []; });
+  await cacheArxiv.getByRole('button').click();
+  await cacheArxiv.getByRole('button').click();
+  await cacheSemantic.getByRole('button').click();
+  await cachePage.waitForFunction(() => window.__gmRequests.some((url) => url.includes('arxivtldr.org')) && window.__gmRequests.some((url) => url.includes('tldr') && url.includes('api.semanticscholar.org')));
+  await assertCachedView(17, 4, oldArxiv, oldSemantic);
+  assert.deepEqual(await cacheSnapshot(), retained);
+  assert.equal(await cacheArxiv.locator('[data-arxivtldr-body]').isVisible(), true);
+  assert.equal(await cacheSemantic.locator('[data-semantic-tldr-body]').isVisible(), true);
+  await cachePage.evaluate(() => window.__gmRelease());
+  await cacheArxiv.getByText(newArxiv, { exact: true }).waitFor();
+  await cacheSemantic.getByText(newSemantic, { exact: true }).waitFor();
+  let refreshed = await cacheSnapshot();
+  assert.ok(refreshed.arxiv.savedAt > oldAt && refreshed.semantic.savedAt > oldAt);
+  assert.equal(refreshed.citations.at, oldAt);
+  assert.equal(refreshed.likes.at, oldAt);
+  await startCachedVisit('cache-updated', 'v12');
+  await assertCachedView(17, 4, newArxiv, newSemantic);
+  await cachePage.evaluate(() => window.__gmRelease());
+  await cachePage.waitForFunction(() => document.querySelector('[data-metric="citations"]')?.dataset.count === '2345' && document.querySelector('[data-metric="likes"]')?.dataset.count === '91' && window.__gmPending.size === 0);
+  await assertCachedView(2345, 91, newArxiv, newSemantic);
+  refreshed = await cacheSnapshot();
+  assert.ok(refreshed.citations.at > oldAt && refreshed.likes.at > oldAt);
+  for (const metric of ['citations', 'likes']) {
+    const fetchedAt = await cachePage.evaluate((at) => new Date(at).toLocaleString('zh-CN'), refreshed[metric].at);
+    assert.ok((await cacheMetrics.locator(`[data-metric="${metric}"]`).getAttribute('title')).includes(fetchedAt));
+  }
+  await startCachedVisit('zero');
+  await assertCachedView(2345, 91, newArxiv, newSemantic);
+  await cachePage.evaluate(() => window.__gmRelease());
+  await cachePage.waitForFunction(() => document.querySelector('[data-metric="citations"]')?.dataset.count === '0' && document.querySelector('[data-metric="likes"]')?.dataset.count === '0' && window.__gmPending.size === 0);
+  const zeroSnapshot = await cacheSnapshot();
+  assert.ok(zeroSnapshot.citations.at > refreshed.citations.at && zeroSnapshot.likes.at > refreshed.likes.at);
+  for (const mode of ['cache-error', 'cache-empty']) {
+    await startCachedVisit(mode, 'v2');
+    await assertCachedView(0, 0, 'A concise research summary fixture with enough content for the existing parser. A second sentence in the first paragraph remains visible.', 'A verified summary fixture describing the paper and its key ideas.');
+    await finishFailedRefresh();
+    assert.deepEqual(await cacheSnapshot(), zeroSnapshot, `explicit zero must survive ${mode}`);
+    assert.deepEqual(await cacheMetrics.locator('[data-metric]').evaluateAll((links) => links.map((link) => link.dataset.count)), ['0', '0']);
+  }
+  for (const width of [1280, 390, 320]) {
+    await cachePage.setViewportSize({ width, height: 900 });
+    assert.equal(await cachePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  }
+  assert.deepEqual(cacheErrors, []);
+  await cacheContext.close();
+
   const spa = await browser.newContext();
   await prepare(spa);
   await spa.route('https://www.alphaxiv.org/**', (route) => route.fulfill({ contentType: 'text/html', body: '<html><head></head><body><nav><a>Audio</a><a>Notes</a></nav><h1>Paper title</h1></body></html>' }));
@@ -331,5 +544,6 @@ try {
   await dynamic.evaluate(() => { document.querySelector('main').textContent = 'Loading'; });
   await badge.waitFor({ state: 'detached' });
   await spa.close();
-  console.log('PASS: 6 document actions/BibTex copy with DOI hidden, cached citations/likes including SSR zero and missing values, Hub plus 10 sites and 6 social links, safe persistent custom links, embedded icons, native content, navigation/mutations, TLDR toggles/rate limits, alphaXiv/arXivisual support.');
+  console.log('PASS: userscript cache refresh regression — indefinitely old citations/likes and both TLDRs render immediately; network errors/null preserve success and timestamps; expansion and every visit refresh; canonical/versioned IDs share cache; Semantic Scholar stays preferred; updated counts/text and explicit zero persist; desktop/390/320 layouts fit.');
+  console.log('PASS: 6 document actions/BibTex copy with DOI hidden, cached citations/likes including SSR zero and missing values, Hub plus 10 sites and 6 social links, safe persistent custom links, embedded icons, native content, navigation/mutations, TLDR toggles/rate limits and direct/Reader math rendering, alphaXiv/arXivisual support.');
 } finally { await browser.close(); }

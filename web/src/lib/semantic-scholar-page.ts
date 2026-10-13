@@ -17,7 +17,7 @@ const RETRY_KEY = "arxivhub:semantic-scholar-page:retry-at";
 let retryAt = 0;
 
 const cache = createPaperMetricCache<PaperCitations>({
-  namespace: "semantic-scholar-page:v1", ttl: DAY, maxAge: 7 * DAY, missingTtl: 5 * 60 * 1000,
+  namespace: "semantic-scholar-page:v1", ttl: DAY, missingTtl: 5 * 60 * 1000,
   valid: validCitations,
 });
 
@@ -229,11 +229,11 @@ async function discoverPaper(ctx: ScholarPageContext): Promise<PaperCitations | 
   return null;
 }
 
-export async function fetchSemanticScholarPage(ctx: ScholarPageContext): Promise<PaperCitations | null> {
+export async function fetchSemanticScholarPage(ctx: ScholarPageContext, force = false): Promise<PaperCitations | null> {
   const id = normalizeId(ctx.id);
   if (!/^(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?\/\d{7})$/i.test(id)) throw new Error("Invalid arXiv ID");
   const saved = readCachedSemanticScholarPage(id);
-  if (saved?.value && !saved.stale) return saved.value;
+  if (!force && saved?.value && !saved.stale) return saved.value;
   const paperId = ctx.paperId && HASH.test(ctx.paperId) ? ctx.paperId.toLowerCase() :
     saved?.value?.paperId || KNOWN_PAPERS[id]?.paperId;
   // Metadata often arrives after the ID. Do not cache that temporary absence.
@@ -244,6 +244,6 @@ export async function fetchSemanticScholarPage(ctx: ScholarPageContext): Promise
   const result = await cache.get(attemptKey, async () => {
     if (!paperId) return discoverPaper(context);
     return loadPaperPage(context, paperId);
-  });
-  return result === null ? null : cache.get(id, async () => result);
+  }, force);
+  return result === null ? null : cache.get(id, async () => result, true);
 }

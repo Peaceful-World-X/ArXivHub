@@ -23,7 +23,7 @@ export function validCitations(value: unknown): value is PaperCitations {
 }
 
 const cache = createPaperMetricCache<PaperCitations>({
-  namespace: "semantic-scholar:v1", ttl: DAY, maxAge: 7 * DAY, missingTtl: DAY / 24, valid: validCitations,
+  namespace: "semantic-scholar:v1", ttl: DAY, missingTtl: DAY / 24, valid: validCitations,
 });
 
 // Match the requested identifier as well as the count; never infer citations from a title search.
@@ -106,8 +106,8 @@ async function loadCitations(identifier: string): Promise<PaperCitations | null>
   return parseSemanticScholarReader(await response.text(), identifier);
 }
 
-async function fetchByIdentifier(id: string): Promise<PaperCitations | null> {
-  return cache.get(id, () => loadCitations(id));
+async function fetchByIdentifier(id: string, force: boolean): Promise<PaperCitations | null> {
+  return cache.get(id, () => loadCitations(id), force);
 }
 
 export function readCachedCitations(rawId: string, rawDoi?: string, paperId?: string): MetricSnapshot<PaperCitations> | undefined {
@@ -120,17 +120,17 @@ export function readCachedCitations(rawId: string, rawDoi?: string, paperId?: st
   return entries.filter((entry) => entry.value).sort((a, b) => b.at - a.at)[0] ?? entries[0];
 }
 
-export async function fetchSemanticScholarCitations(rawId: string, rawDoi?: string, paperId?: string): Promise<PaperCitations | null> {
+export async function fetchSemanticScholarCitations(rawId: string, rawDoi?: string, paperId?: string, force = false): Promise<PaperCitations | null> {
   const id = rawId.replace(/v\d+$/i, "");
   if (!/^(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?\/\d{7})$/i.test(id)) throw new Error("Invalid arXiv ID");
   const cached = readCachedCitations(id, rawDoi, paperId);
-  if (cached?.value && !cached.stale) return cached.value;
+  if (!force && cached?.value && !cached.stale) return cached.value;
   if (paperId && /^[a-f0-9]{40}$/i.test(paperId)) {
-    const canonical = await fetchByIdentifier(paperId);
+    const canonical = await fetchByIdentifier(paperId, force);
     if (canonical) return canonical;
   }
-  const value = await fetchByIdentifier(`ARXIV:${id}`);
+  const value = await fetchByIdentifier(`ARXIV:${id}`, force);
   const doi = normalizePublishedDoi(rawDoi);
   // Only an explicit 404 warrants a DOI lookup. A rate limit must not trigger more requests.
-  return value === null && doi ? fetchByIdentifier(`DOI:${doi}`) : value;
+  return value === null && doi ? fetchByIdentifier(`DOI:${doi}`, force) : value;
 }

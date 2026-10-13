@@ -3,7 +3,6 @@ export type MetricSnapshot<T> = { value: T | null; at: number; stale: boolean };
 export function createPaperMetricCache<T>(options: {
   namespace: string;
   ttl: number;
-  maxAge: number;
   missingTtl: number;
   valid: (value: unknown) => value is T;
 }) {
@@ -22,11 +21,15 @@ export function createPaperMetricCache<T>(options: {
     let entry = memory.get(key);
     try {
       const stored: unknown = JSON.parse(localStorage.getItem(prefix + key) ?? "null");
-      if (validEntry(stored) && (!entry || stored.at > entry.at)) entry = stored;
+      // A miss written by another tab must not hide a known successful value.
+      if (validEntry(stored) && (!entry ||
+          (entry.value === null && stored.value !== null) ||
+          (stored.at > entry.at && (entry.value === null || stored.value !== null)))) entry = stored;
     } catch { /* Memory cache still works if browser storage is disabled. */ }
     if (!entry) return undefined;
     const age = Date.now() - entry.at;
-    if (age < 0 || age >= (entry.value === null ? options.missingTtl : options.maxAge)) {
+    // TTL controls revalidation, not retention: successful counts never expire.
+    if (age < 0 || (entry.value === null && age >= options.missingTtl)) {
       memory.delete(key);
       return undefined;
     }
@@ -34,16 +37,21 @@ export function createPaperMetricCache<T>(options: {
     return { ...entry, stale: age >= (entry.value === null ? options.missingTtl : options.ttl) };
   }
 
-  function get(key: string, load: () => Promise<T | null>): Promise<T | null> {
+  function get(key: string, load: () => Promise<T | null>, force = false): Promise<T | null> {
     const cached = peek(key);
-    if (cached && !cached.stale) return Promise.resolve(cached.value);
+    if (!force && cached && !cached.stale) return Promise.resolve(cached.value);
     let request = pending.get(key);
     if (!request) {
-      request = load().then((value) => {
+      request = Promise.resolve().then(load).then((value) => {
         if (value !== null && !options.valid(value)) throw new Error("Invalid paper metric");
-        const entry = { value, at: Date.now() };
-        memory.set(key, entry);
-        try { localStorage.setItem(prefix + key, JSON.stringify(entry)); } catch { /* Optional persistence. */ }
+        // Missing data is not a new measurement. Preserve both the successful
+        // count (including zero) and its actual retrieval time.
+        const previous = peek(key);
+        if (value !== null || previous?.value === null || !previous) {
+          const entry = { value, at: Date.now() };
+          memory.set(key, entry);
+          try { localStorage.setItem(prefix + key, JSON.stringify(entry)); } catch { /* Optional persistence. */ }
+        }
         return value;
       }).finally(() => pending.delete(key));
       pending.set(key, request);

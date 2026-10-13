@@ -39,9 +39,12 @@ export function parseArxivTldr(text: string): string | null {
   return null;
 }
 
-const cache = new Map<string, { text: string; at: number }>();
+export type ArxivTldrSnapshot = { text: string; at: number };
+type CacheListener = (snapshot: ArxivTldrSnapshot) => void;
+
+const cache = new Map<string, ArxivTldrSnapshot>();
 const pending = new Map<string, Promise<string | null>>();
-const CACHE_TTL = 24 * 60 * 60 * 1000;
+const cacheListeners = new Map<string, Set<CacheListener>>();
 const RATE_LIMIT_KEY = "arxivhub:tldr:extractor-retry-at";
 
 // 空结果可能来自提取服务的旧缓存；刷新时要求重新读取原站。
@@ -63,17 +66,34 @@ async function fetchExtractedTldr(id: string, refresh = false): Promise<string |
   return parseExtractedTldr(await response.json(), id);
 }
 
-function readCache(id: string): string | null {
-  try {
-    const hit = cache.get(id) ?? JSON.parse(localStorage.getItem(`arxivhub:tldr:v1:${id}`) ?? "null");
-    if (hit && typeof hit.text === "string" && hit.text.trim() && Number.isFinite(hit.at) &&
-        hit.at <= Date.now() && Date.now() - hit.at < CACHE_TTL) return hit.text;
-  } catch { /* Storage may be unavailable in private browsing. */ }
-  return null;
+function validSnapshot(value: unknown): value is ArxivTldrSnapshot {
+  return Boolean(value && typeof value === "object" && "text" in value && "at" in value &&
+    typeof value.text === "string" && value.text.trim() && !isPendingSummary(value.text.trim()) &&
+    typeof value.at === "number" && Number.isFinite(value.at) && value.at > 0 && value.at <= Date.now());
 }
 
-function readFromUserscript(id: string): Promise<{ available: boolean; text: string | null }> {
-  if (typeof window === "undefined") return Promise.resolve({ available: false, text: null });
+export function readCachedArxivTldr(id: string): ArxivTldrSnapshot | undefined {
+  let hit = cache.get(id);
+  if (hit && !validSnapshot(hit)) { cache.delete(id); hit = undefined; }
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(`arxivhub:tldr:v1:${id}`) ?? "null");
+    if (validSnapshot(stored) && (!hit || stored.at > hit.at)) hit = stored;
+  } catch { /* Memory cache works when storage is unavailable. */ }
+  if (hit) cache.set(id, hit);
+  return hit ? { ...hit } : undefined;
+}
+
+function saveCache(id: string, snapshot: ArxivTldrSnapshot): ArxivTldrSnapshot | undefined {
+  if (!validSnapshot(snapshot)) return readCachedArxivTldr(id);
+  const current = readCachedArxivTldr(id);
+  if (current && current.at > snapshot.at) return current;
+  cache.set(id, snapshot);
+  try { localStorage.setItem(`arxivhub:tldr:v1:${id}`, JSON.stringify(snapshot)); } catch { /* Optional persistence. */ }
+  return snapshot;
+}
+
+function readFromUserscript(id: string, onCached: CacheListener): Promise<ArxivTldrSnapshot | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
   return new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID();
     const channel = "arxivhub:tldr:v1";
@@ -92,48 +112,62 @@ function readFromUserscript(id: string): Promise<{ available: boolean; text: str
         ready = true;
         clearInterval(ping);
         clearTimeout(timer);
-        timer = setTimeout(() => { cleanup(); reject(new Error("TLDR script timeout")); }, 16000);
+        // The script has a 30-second direct/retry/Reader budget.
+        timer = setTimeout(() => { cleanup(); reject(new Error("TLDR script timeout")); }, 32000);
         send("request");
+      } else if (ready && data.type === "cache" && data.ok && validSnapshot(data)) {
+        onCached({ text: data.text, at: data.at });
       } else if (ready && data.type === "result") {
         cleanup();
         if (data.ok && (data.text === null || typeof data.text === "string")) {
-          resolve({ available: true, text: data.text?.trim() || null });
+          const text = data.text?.replace(/\s+/g, " ").trim();
+          const snapshot = { text: text || "", at: data.at ?? Date.now() };
+          resolve(validSnapshot(snapshot) ? snapshot : null);
         } else reject(new Error("TLDR script request failed"));
       }
     };
-    let timer = setTimeout(() => { cleanup(); resolve({ available: false, text: null }); }, 800);
+    let timer = setTimeout(() => { cleanup(); resolve(null); }, 3000);
     const ping = setInterval(() => send("ping"), 100);
     window.addEventListener("message", onMessage);
     send("ping");
   });
 }
 
-export async function fetchArxivTldr(id: string): Promise<string | null> {
-  const hit = readCache(id);
-  if (hit) return hit;
+export async function fetchArxivTldr(id: string, onCached?: CacheListener): Promise<string | null> {
+  const hit = readCachedArxivTldr(id);
+  if (hit) onCached?.(hit);
   let request = pending.get(id);
   if (!request) {
-    request = loadArxivTldr(id).then((text) => {
-      if (text) {
-        const entry = { text, at: Date.now() };
-        cache.set(id, entry);
-        try { localStorage.setItem(`arxivhub:tldr:v1:${id}`, JSON.stringify(entry)); } catch { /* Optional cache. */ }
-      }
-      return text;
-    }).finally(() => pending.delete(id));
+    const listeners = new Set<CacheListener>();
+    cacheListeners.set(id, listeners);
+    request = loadArxivTldr(id, (snapshot) => {
+      const saved = saveCache(id, snapshot);
+      if (saved) listeners.forEach((listener) => listener(saved));
+    }).then((snapshot) => (snapshot ? saveCache(id, snapshot) : readCachedArxivTldr(id))?.text ?? null)
+      .catch((error: unknown) => {
+        const cached = readCachedArxivTldr(id);
+        if (cached) return cached.text;
+        throw error;
+      }).finally(() => {
+        pending.delete(id);
+        cacheListeners.delete(id);
+      });
     pending.set(id, request);
   }
-  return request;
+  const listeners = cacheListeners.get(id)!;
+  if (onCached) listeners.add(onCached);
+  try { return await request; }
+  finally { if (onCached) listeners.delete(onCached); }
 }
 
 // 任一来源的空结果都不代表原站没有摘要，继续刷新或读取备用来源。
-async function loadArxivTldr(id: string): Promise<string | null> {
-  const bridge = await readFromUserscript(id).catch(() => null);
-  if (bridge?.text) return bridge.text;
+async function loadArxivTldr(id: string, onCached: CacheListener): Promise<ArxivTldrSnapshot | null> {
+  const bridge = await readFromUserscript(id, onCached).catch(() => null);
+  if (bridge) return bridge;
   try {
     // Extract the explicit TLDR paragraph, never the site's generic meta description.
     const text = await fetchExtractedTldr(id) ?? await fetchExtractedTldr(id, true);
-    if (text) return text;
+    if (text) return { text, at: Date.now() };
   } catch {
     // The public extraction API has a free quota; Reader remains a fallback.
   }
@@ -143,5 +177,6 @@ async function loadArxivTldr(id: string): Promise<string | null> {
     signal: AbortSignal.timeout(12000),
   });
   if (!response.ok) throw new Error(`ArXiv TLDR ${response.status}`);
-  return parseArxivTldr(await response.text());
+  const text = parseArxivTldr(await response.text());
+  return text ? { text, at: Date.now() } : null;
 }

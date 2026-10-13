@@ -35,7 +35,7 @@ function search(url, hashes = [HASH]) {
 // string on an orchestrator import alone would leave its dependencies shared.
 function isolated(scenario) {
   const modules = { s2: "semantic-scholar", pages: "semantic-scholar-page", oa: "openalex-citations",
-    citations: "paper-citations", metric: "paper-metric-cache" };
+    citations: "paper-citations", metric: "paper-metric-cache", alpha: "alphaxiv" };
   const imports = Object.entries(modules).map(([name, file]) =>
     `import * as ${name} from ${JSON.stringify(new URL(`../src/lib/${file}.ts`, import.meta.url).href)};`).join("\n");
   const fixtures = [paperUrl, graph, openalex, markdown, detail, html, search].map(String).join("\n");
@@ -198,7 +198,7 @@ test("OpenAlex is last; its cache cannot block S2 recovery, and outages retain e
 }));
 
 test("the shared cache retains zero and stale data, expires misses, and never stores failures as counts", () => isolated(async () => {
-  const options = { namespace: "isolated-cache", ttl: 1000, maxAge: 7000, missingTtl: 500,
+  const options = { namespace: "isolated-cache", ttl: 1000, missingTtl: 500,
     valid: value => Number.isSafeInteger(value) && value >= 0 };
   const cache = metric.createPaperMetricCache(options); let calls = 0;
   const load = async () => { calls++; return 0; };
@@ -207,9 +207,243 @@ test("the shared cache retains zero and stale data, expires misses, and never st
   now += 1001;
   await assert.rejects(cache.get("p", async () => { throw new Error("offline"); }));
   assert.equal(cache.peek("p").value, 0); assert.equal(cache.peek("p").stale, true);
-  assert.equal(await cache.get("p", async () => 7), 7); now += 7001; assert.equal(cache.peek("p"), undefined);
+  assert.equal(await cache.get("p", async () => 7), 7); now += 400 * DAY;
+  assert.equal(cache.peek("p").value, 7); assert.equal(cache.peek("p").stale, true);
   await cache.get("missing", async () => null); now += 501; assert.equal(cache.peek("missing"), undefined);
   await assert.rejects(cache.get("bad", async () => -1)); assert.equal(cache.peek("bad"), undefined);
+}));
+
+test("successful metric snapshots survive months, nulls and failures without changing their retrieval time", () => isolated(async () => {
+  const options = { namespace: "persistent-cache", ttl: 1000, missingTtl: 500,
+    valid: value => Number.isSafeInteger(value) && value >= 0 };
+  const cache = metric.createPaperMetricCache(options);
+  assert.equal(await cache.get("p", async () => 0), 0);
+  const original = cache.peek("p");
+  const stored = storage.get("arxivhub:persistent-cache:p");
+  now += 400 * DAY;
+  const reloaded = metric.createPaperMetricCache(options);
+  assert.deepEqual(reloaded.peek("p"), { ...original, stale: true });
+  assert.equal(await reloaded.get("p", async () => null, true), null);
+  await assert.rejects(reloaded.get("p", async () => { throw new Error("offline"); }, true));
+  await assert.rejects(reloaded.get("p", async () => -1, true));
+  assert.deepEqual(reloaded.peek("p"), { ...original, stale: true });
+  assert.equal(storage.get("arxivhub:persistent-cache:p"), stored);
+  // An older client/tab's negative write cannot hide the in-memory success.
+  storage.set("arxivhub:persistent-cache:p", JSON.stringify({ at: now, value: null }));
+  assert.deepEqual(reloaded.peek("p"), { ...original, stale: true });
+  for (const at of [null, "123", now + 1, Infinity]) {
+    storage.set("arxivhub:persistent-cache:invalid", JSON.stringify({ at, value: 5 }));
+    assert.equal(reloaded.peek("invalid"), undefined);
+  }
+}));
+
+test("force refresh bypasses both fresh counts and misses while concurrent refreshes share one loader", () => isolated(async () => {
+  const cache = metric.createPaperMetricCache({ namespace: "forced-cache", ttl: DAY, missingTtl: 500,
+    valid: value => Number.isSafeInteger(value) && value >= 0 });
+  await cache.get("p", async () => 8);
+  let calls = 0;
+  const load = async () => { calls++; return 0; };
+  assert.equal(await cache.get("p", load), 8); assert.equal(calls, 0);
+  now++;
+  assert.deepEqual(await Promise.all([cache.get("p", load, true), cache.get("p", load, true)]), [0, 0]);
+  assert.equal(calls, 1); assert.equal(cache.peek("p").at, now);
+  await cache.get("missing", async () => null);
+  assert.equal(await cache.get("missing", load), null); assert.equal(calls, 1);
+  assert.equal(await cache.get("missing", load, true), 0); assert.equal(calls, 2);
+}));
+
+test("every metric source reads months-old persisted successes, including zero, before any request", () => isolated(async () => {
+  const at = now - 400 * DAY;
+  storage.set(`arxivhub:semantic-scholar:v1:ARXIV:${JTA.id}`, JSON.stringify({ at, value: { paperId: HASH, citationCount: 0 } }));
+  storage.set(`arxivhub:semantic-scholar-page:v1:${JTA.id}`, JSON.stringify({ at, value: { paperId: HASH, citationCount: 0 } }));
+  storage.set(`arxivhub:openalex-citations:v1:${JTA.id}`, JSON.stringify({ at: now, value: { citationCount: 99, url: "https://openalex.org/W12345" } }));
+  storage.set(`arxivhub:alphaxiv-likes:v1:${JTA.id}`, JSON.stringify({ at, value: 0 }));
+  assert.equal(s2.readCachedCitations(JTA.id).at, at);
+  assert.equal(pages.readCachedSemanticScholarPage(JTA.id).at, at);
+  assert.deepEqual(alpha.readCachedAlphaXivLikes(JTA.id), { at, value: 0, stale: true });
+  const cited = citations.readCachedPaperCitations(JTA);
+  assert.equal(cited.value.source, "Semantic Scholar"); assert.equal(cited.value.citationCount, 0);
+  assert.equal(cited.at, at); assert.equal(cited.stale, true); assert.equal(requests.length, 0);
+  const other = "2401.99800";
+  storage.set(`arxivhub:openalex-citations:v1:${other}`, JSON.stringify({ at, value: { citationCount: 0, url: "https://openalex.org/W12345" } }));
+  assert.equal(oa.readCachedOpenAlexCitations(other).at, at);
+  assert.equal(citations.readCachedPaperCitations({ id: other }).value.source, "OpenAlex");
+  assert.equal(citations.readCachedPaperCitations({ id: "2401.99801" }), undefined);
+  assert.equal(alpha.readCachedAlphaXivLikes("2401.99801"), undefined);
+}));
+
+test("forced page revisits refresh fresh Semantic Scholar totals, persist the new total and deduplicate requests", () => isolated(async () => {
+  let count = 8;
+  mockFetch(() => new Response(markdown(JTA, HASH, count)));
+  assert.equal((await citations.fetchPaperCitations(JTA)).citationCount, 8);
+  const first = citations.readCachedPaperCitations(JTA);
+  count = 0;
+  assert.equal((await citations.fetchPaperCitations(JTA)).citationCount, 8); assert.equal(requests.length, 1);
+  assert.deepEqual((await Promise.all([
+    citations.fetchPaperCitations(JTA, true), citations.fetchPaperCitations({ ...JTA, id: JTA.id + "v2" }, true),
+  ])).map(value => value.citationCount), [0, 0]);
+  assert.equal(requests.length, 2);
+  assert.equal(citations.readCachedPaperCitations(JTA).value.citationCount, 0);
+  assert.ok(citations.readCachedPaperCitations(JTA).at > first.at);
+  count = 9;
+  assert.equal((await citations.fetchPaperCitations(JTA, true)).citationCount, 9); assert.equal(requests.length, 3);
+  assert.equal((await citations.fetchPaperCitations(JTA)).citationCount, 9); assert.equal(requests.length, 3);
+}));
+
+test("forced Semantic Scholar refreshes retry fresh misses and keep cached totals/timestamps on 404 or error", () => isolated(async () => {
+  const at = now - 400 * DAY;
+  storage.set(`arxivhub:semantic-scholar-page:v1:${JTA.id}`, JSON.stringify({ at, value: { paperId: HASH, citationCount: 12 } }));
+  storage.set(`arxivhub:semantic-scholar:v1:${HASH}`, JSON.stringify({ at, value: { paperId: HASH, citationCount: 12 } }));
+  storage.set(`arxivhub:openalex-citations:v1:${JTA.id}`, JSON.stringify({ at: now, value: { citationCount: 900, url: "https://openalex.org/W12345" } }));
+  for (const status of [404, 503]) {
+    mockFetch(url => {
+      assert.ok(!url.includes("api.openalex.org"));
+      return new Response("Unavailable", { status });
+    });
+    await assert.rejects(citations.fetchPaperCitations(JTA, true));
+    assert.equal(citations.readCachedPaperCitations(JTA).value.citationCount, 12);
+    assert.equal(citations.readCachedPaperCitations(JTA).value.source, "Semantic Scholar");
+    assert.equal(citations.readCachedPaperCitations(JTA).at, at);
+    assert.equal(pages.readCachedSemanticScholarPage(JTA.id).at, at);
+    assert.equal(s2.readCachedCitations(JTA.id, undefined, HASH).at, at);
+  }
+  const ctx = { id: "2401.99802", title: "Retry a missed page", paperId: "f".repeat(40) };
+  mockFetch(() => new Response("Missing", { status: 404 }));
+  assert.equal(await pages.fetchSemanticScholarPage(ctx), null);
+  const missed = requests.length;
+  mockFetch(() => new Response(markdown(ctx, ctx.paperId, 0)));
+  assert.equal(await pages.fetchSemanticScholarPage(ctx), null); assert.equal(requests.length, missed);
+  assert.equal((await pages.fetchSemanticScholarPage(ctx, true)).citationCount, 0);
+  assert.equal(requests.length, missed + 1);
+}));
+
+test("forced Graph refresh bypasses fresh canonical, arXiv and DOI caches, including cached misses", () => isolated(async () => {
+  const ctx = { id: "2401.99803" };
+  let count = 1;
+  mockFetch(() => Response.json(graph(ctx, count)));
+  assert.equal((await s2.fetchSemanticScholarCitations(ctx.id)).citationCount, 1);
+  count = 0;
+  assert.equal((await s2.fetchSemanticScholarCitations(ctx.id)).citationCount, 1);
+  assert.deepEqual((await Promise.all([
+    s2.fetchSemanticScholarCitations(ctx.id, undefined, undefined, true),
+    s2.fetchSemanticScholarCitations(ctx.id + "v2", undefined, undefined, true),
+  ])).map(value => value.citationCount), [0, 0]);
+  assert.equal(requests.length, 2);
+  assert.equal((await s2.fetchSemanticScholarCitations(ctx.id, undefined, HASH, true)).citationCount, 0);
+  count = 3;
+  assert.equal((await s2.fetchSemanticScholarCitations(ctx.id, undefined, HASH, true)).citationCount, 3);
+  const saved = s2.readCachedCitations(ctx.id, undefined, HASH);
+  mockFetch(() => new Response("Missing", { status: 404 }));
+  assert.equal(await s2.fetchSemanticScholarCitations(ctx.id, undefined, HASH, true), null);
+  assert.deepEqual(s2.readCachedCitations(ctx.id, undefined, HASH), saved);
+  const other = "2401.99804", doi = "10.1234/refresh";
+  assert.equal(await s2.fetchSemanticScholarCitations(other, doi), null);
+  const missed = requests.length;
+  mockFetch(url => url.includes("ARXIV:") ? new Response("Missing", { status: 404 }) :
+    Response.json({ paperId: HASH, citationCount: 4, externalIds: { DOI: doi } }));
+  assert.equal(await s2.fetchSemanticScholarCitations(other, doi), null); assert.equal(requests.length, missed);
+  assert.equal((await s2.fetchSemanticScholarCitations(other, doi, undefined, true)).citationCount, 4);
+  assert.equal(requests.length, missed + 2);
+}));
+
+test("a canonical Graph refresh remains visible through the paper's cached arXiv identity", () => isolated(async () => {
+  const ctx = { id: "2401.99809", title: "Graph-only paper" };
+  storage.set(`arxivhub:semantic-scholar:v1:ARXIV:${ctx.id}`, JSON.stringify({ at: now - DAY, value: { paperId: HASH, citationCount: 8 } }));
+  mockFetch(url => url.startsWith("https://api.semanticscholar.org/") ? Response.json({ paperId: HASH, citationCount: 0 }) :
+    new Response("Unavailable", { status: 404 }));
+  assert.equal((await citations.fetchPaperCitations(ctx, true)).citationCount, 0);
+  const snapshot = citations.readCachedPaperCitations(ctx);
+  assert.equal(snapshot.value.citationCount, 0); assert.equal(snapshot.value.source, "Semantic Scholar");
+  assert.equal(snapshot.at, now); assert.equal(requests.length, 2);
+  mockFetch(() => new Response("Unavailable", { status: 404 }));
+  await assert.rejects(citations.fetchPaperCitations(ctx, true));
+  assert.deepEqual(citations.readCachedPaperCitations(ctx), snapshot);
+}));
+
+test("forced OpenAlex fallback refreshes fresh counts, but misses/errors never erase old successes", () => isolated(async () => {
+  const ctx = { id: "2401.99805", title: "Fallback refresh" };
+  let count = 2;
+  mockFetch(url => url.includes("api.openalex.org") ? Response.json(new URL(url).pathname === "/works" ? openalex(ctx, count) : openalex(ctx, count).results[0]) : new Response("Unavailable", { status: 404 }));
+  assert.equal((await citations.fetchPaperCitations(ctx)).citationCount, 2);
+  count = 0;
+  assert.equal((await citations.fetchPaperCitations(ctx)).citationCount, 2);
+  const calls = requests.filter(url => url.includes("api.openalex.org")).length;
+  assert.equal((await citations.fetchPaperCitations(ctx, true)).citationCount, 0);
+  assert.equal(requests.filter(url => url.includes("api.openalex.org")).length, calls + 1);
+  const saved = citations.readCachedPaperCitations(ctx);
+  for (const status of [404, 503]) {
+    mockFetch(() => new Response("Unavailable", { status }));
+    await assert.rejects(citations.fetchPaperCitations(ctx, true));
+    assert.deepEqual(citations.readCachedPaperCitations(ctx), saved);
+  }
+}));
+
+test("likes revisits bypass the fresh preview cache, share in-flight work and preserve success on missing/invalid data", () => isolated(async () => {
+  const id = "2401.99806";
+  let count = 2;
+  mockFetch(() => Response.json({ universal_paper_id: id, metrics: { public_total_votes: count } }));
+  // Metadata may already have filled the fifteen-minute preview cache.
+  await alpha.fetchAlphaXivPreview(id);
+  assert.equal(await alpha.fetchAlphaXivLikes(id), 2); assert.equal(requests.length, 1);
+  count = 0;
+  assert.equal(await alpha.fetchAlphaXivLikes(id), 2); assert.equal(requests.length, 1);
+  assert.deepEqual(await Promise.all([alpha.fetchAlphaXivLikes(id, true), alpha.fetchAlphaXivLikes(id + "v2", true)]), [0, 0]);
+  assert.equal(requests.length, 2);
+  const saved = alpha.readCachedAlphaXivLikes(id);
+  for (const status of [404, 503]) {
+    mockFetch(() => new Response("Unavailable", { status }));
+    if (status === 404) assert.equal(await alpha.fetchAlphaXivLikes(id, true), null);
+    else await assert.rejects(alpha.fetchAlphaXivLikes(id, true));
+    assert.deepEqual(alpha.readCachedAlphaXivLikes(id), saved);
+  }
+  mockFetch(() => Response.json({ universal_paper_id: id, metrics: {} }));
+  await assert.rejects(alpha.fetchAlphaXivLikes(id, true)); assert.deepEqual(alpha.readCachedAlphaXivLikes(id), saved);
+  count = 4;
+  mockFetch(() => Response.json({ universal_paper_id: id, metrics: { public_total_votes: count } }));
+  assert.equal(await alpha.fetchAlphaXivLikes(id, true), 4);
+  assert.ok(alpha.readCachedAlphaXivLikes(id).at > saved.at);
+  const absent = "2401.99807";
+  mockFetch(() => new Response("Unavailable", { status: 404 }));
+  assert.equal(await alpha.fetchAlphaXivLikes(absent), null);
+  const missed = requests.length;
+  mockFetch(() => Response.json({ universal_paper_id: absent, metrics: { public_total_votes: 0 } }));
+  assert.equal(await alpha.fetchAlphaXivLikes(absent), null); assert.equal(requests.length, missed);
+  assert.equal(await alpha.fetchAlphaXivLikes(absent, true), 0); assert.equal(requests.length, missed + 1);
+}));
+
+test("missing sources without a known success remain missing rather than becoming zero", () => isolated(async () => {
+  const ctx = { id: "2401.99810", title: "Not indexed" };
+  mockFetch(() => new Response("Not found", { status: 404 }));
+  assert.equal(await citations.fetchPaperCitations(ctx, true), null);
+  assert.equal(citations.readCachedPaperCitations(ctx), undefined);
+  assert.equal(await alpha.fetchAlphaXivLikes(ctx.id, true), null);
+  assert.equal(alpha.readCachedAlphaXivLikes(ctx.id).value, null);
+}));
+
+test("forced refreshes honor Semantic Scholar, OpenAlex and alphaXiv cooldowns without advancing timestamps", () => isolated(async () => {
+  const ctx = { id: "2401.99808", title: "Cooldown Paper" };
+  const at = now;
+  storage.set(`arxivhub:semantic-scholar:v1:ARXIV:${ctx.id}`, JSON.stringify({ at, value: { paperId: HASH, citationCount: 0 } }));
+  storage.set(`arxivhub:semantic-scholar-page:v1:${ctx.id}`, JSON.stringify({ at, value: { paperId: HASH, citationCount: 0 } }));
+  storage.set(`arxivhub:openalex-citations:v1:${ctx.id}`, JSON.stringify({ at, value: { citationCount: 0, url: "https://openalex.org/W12345" } }));
+  storage.set(`arxivhub:alphaxiv-likes:v1:${ctx.id}`, JSON.stringify({ at, value: 0 }));
+  mockFetch(() => new Response("Too Many Requests", { status: 429, headers: { "Retry-After": "120" } }));
+  const loads = [() => s2.fetchSemanticScholarCitations(ctx.id, undefined, undefined, true),
+    () => pages.fetchSemanticScholarPage(ctx, true), () => oa.fetchOpenAlexCitations(ctx, true), () => alpha.fetchAlphaXivLikes(ctx.id, true)];
+  for (const load of loads) {
+    const before = requests.length;
+    await assert.rejects(load()); assert.equal(requests.length, before + 1);
+    await assert.rejects(load()); assert.equal(requests.length, before + 1);
+  }
+  assert.equal(s2.readCachedCitations(ctx.id).at, at);
+  assert.equal(pages.readCachedSemanticScholarPage(ctx.id).at, at);
+  assert.equal(oa.readCachedOpenAlexCitations(ctx.id).at, at);
+  assert.equal(alpha.readCachedAlphaXivLikes(ctx.id).at, at);
+  const reloaded = await import("./src/lib/alphaxiv.ts?cooldown-reload");
+  await assert.rejects(reloaded.fetchAlphaXivLikes(ctx.id, true), /rate limited/); assert.equal(requests.length, 4);
+  now += 120001;
+  mockFetch(() => Response.json({ universal_paper_id: ctx.id, metrics: { public_total_votes: 1 } }));
+  assert.equal(await reloaded.fetchAlphaXivLikes(ctx.id, true), 1); assert.equal(requests.length, 5);
 }));
 
 test("S2 API and Reader cooldowns stop all subsequent requests until Retry-After has passed", () => isolated(async () => {

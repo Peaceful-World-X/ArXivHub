@@ -73,7 +73,7 @@ let retryAt = 0;
 let budgetRetryAt = 0;
 const identities = new Map<string, { workId: string; at: number }>();
 const cache = createPaperMetricCache<OpenAlexCitations>({
-  namespace: "openalex-citations:v1", ttl: DAY, maxAge: 7 * DAY, missingTtl: 5 * 60 * 1000,
+  namespace: "openalex-citations:v1", ttl: DAY, missingTtl: 5 * 60 * 1000,
   valid: validCitations,
 });
 
@@ -164,7 +164,7 @@ async function readErrorText(response: Response): Promise<string> {
   finally { await reader.cancel().catch(() => undefined); }
 }
 
-export async function fetchOpenAlexCitations(ctx: LookupContext): Promise<OpenAlexCitations | null> {
+export async function fetchOpenAlexCitations(ctx: LookupContext, force = false): Promise<OpenAlexCitations | null> {
   const id = normalizeId(ctx.id);
   const title = ctx.title?.trim();
   const doi = ctx.doi?.trim().replace(/^https?:\/\/(?:dx\.)?doi\.org\//i, "").replace(/^doi:\s*/i, "");
@@ -196,7 +196,7 @@ export async function fetchOpenAlexCitations(ctx: LookupContext): Promise<OpenAl
       if (result === null) throw new MissingCitations();
       rememberWork(id, result);
       return result;
-    });
+    }, force);
   } catch (error) {
     if (error instanceof MissingCitations) return null;
     throw error;

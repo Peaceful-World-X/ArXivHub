@@ -7,7 +7,8 @@ export type CitationResult = { citationCount: number; url: string; source: "Sema
 export type CitationContext = ScholarPageContext;
 
 function knownPaperId(ctx: CitationContext): string | undefined {
-  return semanticScholarPageUrl(ctx).match(/\/([a-f0-9]{40})(?:[?#]|$)/i)?.[1];
+  return semanticScholarPageUrl(ctx).match(/\/([a-f0-9]{40})(?:[?#]|$)/i)?.[1]
+    ?? readCachedCitations(ctx.id, ctx.doi)?.value?.paperId;
 }
 
 function scholarResult(ctx: CitationContext, value: PaperCitations): CitationResult {
@@ -33,25 +34,28 @@ export function citationPageUrl(ctx: CitationContext): string {
   return readCachedPaperCitations(ctx)?.value?.url ?? semanticScholarPageUrl(ctx);
 }
 
-export async function fetchPaperCitations(ctx: CitationContext): Promise<CitationResult | null> {
+export async function fetchPaperCitations(ctx: CitationContext, force = false): Promise<CitationResult | null> {
   const cached = readCachedPaperCitations(ctx);
-  if (cached?.value?.source === "Semantic Scholar" && !cached.stale) return cached.value;
+  if (!force && cached?.value?.source === "Semantic Scholar" && !cached.stale) return cached.value;
   let failure: unknown;
-  const paperId = knownPaperId(ctx) ?? readCachedCitations(ctx.id, ctx.doi)?.value?.paperId;
+  const paperId = knownPaperId(ctx);
   // Prefer Semantic Scholar for every paper, even when an older OpenAlex cache exists.
   for (const load of [
-    () => fetchSemanticScholarPage({ ...ctx, paperId }),
-    () => fetchSemanticScholarCitations(ctx.id, ctx.doi, paperId),
+    () => fetchSemanticScholarPage({ ...ctx, paperId }, force),
+    () => fetchSemanticScholarCitations(ctx.id, ctx.doi, paperId, force),
   ]) {
     try {
       const value = await load();
       if (value) return scholarResult(ctx, value);
     } catch (error) { failure = error; }
   }
-  if (cached?.value?.source === "Semantic Scholar") throw failure ?? new Error("Could not refresh cached citations");
-  if (cached?.value && !cached.stale) return cached.value;
+  if (readScholar(ctx)) throw failure ?? new Error("Could not refresh cached citations");
+  if (!force && cached?.value && !cached.stale) return cached.value;
   try {
-    const value = await fetchOpenAlexCitations(ctx);
+    const value = await fetchOpenAlexCitations(ctx, force);
+    // Another request/tab may have recovered Semantic Scholar while OpenAlex loaded.
+    const scholar = readScholar(ctx);
+    if (scholar?.value) return scholar.value;
     if (value) return { ...value, source: "OpenAlex" };
   } catch (error) { failure = error; }
   if (cached?.value) throw failure ?? new Error("Could not refresh cached citations");

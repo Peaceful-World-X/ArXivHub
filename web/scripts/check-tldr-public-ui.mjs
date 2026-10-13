@@ -10,7 +10,7 @@ const papers = [
   ["2504.16054", /robot|vision|language/i],
   ["2307.15818", /RT-2/i],
 ];
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, chromiumSandbox: true, args: ["--disable-dev-shm-usage"] });
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
   let readerRequests = 0;
@@ -69,10 +69,13 @@ try {
     .filter((params) => params.get("url").endsWith("2307.15818")).map((params) => params.get("force")), [null, "true"]);
   assert.equal(readerRequests, 0);
   await context.route("https://api.microlink.io/**", (route) => route.abort());
+  const oldCache = await page.evaluate(() => localStorage.getItem("arxivhub:tldr:v1:2303.08774"));
   await page.goto(new URL("p/2303.08774", base).href, { waitUntil: "domcontentloaded" });
   await page.getByTestId("paper-tldr").getByText(results[0].text, { exact: true }).waitFor();
-  assert.equal(apiRequests.length, expectedRequests);
-  assert.equal(readerRequests, 0);
+  await page.waitForFunction(() => document.querySelector('[data-testid="paper-tldr"]')?.getAttribute("aria-busy") === "false", null, { timeout: 35000 });
+  assert.equal(apiRequests.length, expectedRequests + 1);
+  assert.equal(readerRequests, 1);
+  assert.equal(await page.evaluate(() => localStorage.getItem("arxivhub:tldr:v1:2303.08774")), oldCache);
   assert.deepEqual(errors, []);
   await context.close();
 

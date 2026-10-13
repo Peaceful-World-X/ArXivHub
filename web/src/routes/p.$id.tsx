@@ -24,7 +24,7 @@ import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
 import { EXAMPLE_PAPERS, EXTRAS, PAPER_TOOLS, TOOLS, buildToolUrl } from "@/lib/tools";
 import { MathText } from "@/components/math-text";
-import { fetchArxivTldr } from "@/lib/arxiv-tldr";
+import { fetchArxivTldr, readCachedArxivTldr } from "@/lib/arxiv-tldr";
 import { PaperAiLinks } from "@/components/paper-ai-links";
 import { InstallGuide } from "@/components/install-guide";
 import { PaperMetrics } from "@/components/paper-metrics";
@@ -45,7 +45,8 @@ function PaperPage() {
   const [paper, setPaper] = useState<ArxivPaper | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tldr, setTldr] = useState<string | null>(null);
+  const [tldr, setTldr] = useState<string | null>(() => readCachedArxivTldr(id)?.text ?? null);
+  const [tldrId, setTldrId] = useState(id);
   const [tldrLoading, setTldrLoading] = useState(true);
   const [tldrError, setTldrError] = useState(false);
   const [tldrAttempt, setTldrAttempt] = useState(0);
@@ -71,11 +72,12 @@ function PaperPage() {
   useEffect(() => {
     let active = true;
     setTldrLoading(true);
-    setTldr(null);
+    setTldrId(id);
+    setTldr(readCachedArxivTldr(id)?.text ?? null);
     setTldrError(false);
-    void fetchArxivTldr(id)
+    void fetchArxivTldr(id, (snapshot) => { if (active) setTldr(snapshot.text); })
       .then((text) => {
-        if (active) setTldr(text);
+        if (active) setTldr(text ?? readCachedArxivTldr(id)?.text ?? null);
       })
       .catch(() => { if (active) setTldrError(true); })
       .finally(() => active && setTldrLoading(false));
@@ -97,6 +99,8 @@ function PaperPage() {
     }),
     [id, paper],
   );
+
+  const visibleTldr = tldrId === id ? tldr : readCachedArxivTldr(id)?.text ?? null;
 
   const extras = EXTRAS.filter((e) => e.paperId === id);
   const documentTitles = {
@@ -191,8 +195,8 @@ function PaperPage() {
         ) : null}
         <section className="mt-5 border-y border-border py-4" data-testid="paper-tldr" aria-busy={tldrLoading}>
           <h2 className="font-display text-lg"><a href={`https://arxivtldr.org/abs/${id}`} target="_blank" rel="noopener noreferrer" title={t.viewOriginal} className="text-inherit no-underline hover:text-accent">ArXiv TLDR</a></h2>
-          <MathText className="mt-2 text-sm leading-relaxed text-muted" text={tldrLoading ? t.arxivTldrLoading : tldr ?? (tldrError ? t.arxivTldrFailed : t.arxivTldrUnavailable)} />
-          {!tldrLoading && !tldr ? (
+          <MathText className="mt-2 text-sm leading-relaxed text-muted" text={visibleTldr ?? (tldrLoading ? t.arxivTldrLoading : tldrError ? t.arxivTldrFailed : t.arxivTldrUnavailable)} />
+          {!tldrLoading && !visibleTldr ? (
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => setTldrAttempt((value) => value + 1)} title={t.retry} aria-label={t.retry} className="grid size-9 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-accent"><RefreshCw className="size-4" /></button>
               {tldrError ? <button type="button" onClick={() => setShowInstallGuide(true)} className="inline-flex min-h-9 items-center gap-1.5 text-sm text-accent"><Puzzle className="size-4" />{t.arxivTldrScript}</button> : null}
@@ -211,7 +215,7 @@ function PaperPage() {
         ) : null}
 
         <div className="paper-bottom-actions" data-testid="paper-bottom-actions">
-          <PaperAiLinks key={id} id={id} paper={paper} tldr={tldr} />
+          <PaperAiLinks key={id} id={id} paper={paper} tldr={visibleTldr} />
           <nav aria-label={lang === "zh" ? "论文讨论与检索" : "Paper discussion and search"} className="flex max-w-full min-w-0 items-center gap-1 overflow-x-auto py-1 justify-self-end">
             {SOCIAL_TOOLS.map((tool) => {
               const name = lang === "zh" ? tool.nameZh : tool.name;

@@ -18,14 +18,19 @@ function PaperMetric({ metric, label, testId, Icon, linkWhenUnavailable = false 
   // Read synchronously: refreshing a page paints the cached number immediately.
   const [state, setState] = useState(() => {
     const snapshot = metric.read();
-    return { snapshot, loading: !snapshot || snapshot.stale, error: false };
+    return { snapshot, loading: true, error: false };
   });
   useEffect(() => {
     let active = true;
     const cached = metric.read();
-    setState({ snapshot: cached, loading: !cached || cached.stale, error: false });
+    setState({ snapshot: cached, loading: true, error: false });
     void metric.load().then(
-      () => { if (active) setState({ snapshot: metric.read(), loading: false, error: false }); },
+      (value) => {
+        if (!active) return;
+        const snapshot = metric.read() ?? cached;
+        const missingRefresh = value === null && snapshot?.value !== null && snapshot?.value !== undefined;
+        setState({ snapshot, loading: false, error: missingRefresh });
+      },
       () => { if (active) setState({ snapshot: metric.read() ?? cached, loading: false, error: true }); },
     );
     return () => { active = false; };
@@ -64,7 +69,7 @@ export function PaperMetrics({ id, doi, title, metadataLoading = false }: { id: 
           href: cached.value?.url ?? href, source: cached.value?.source } : undefined;
       },
       load: () => metadataLoading && !title && !href.startsWith("https://www.semanticscholar.org/paper/")
-        ? Promise.resolve(null) : fetchPaperCitations(ctx),
+        ? Promise.resolve(null) : fetchPaperCitations(ctx, true),
     };
   }, [id, doi, title, metadataLoading]);
   const likes = useMemo<Metric>(() => {
@@ -72,7 +77,7 @@ export function PaperMetrics({ id, doi, title, metadataLoading = false }: { id: 
     return { href, source: "alphaXiv", read: () => {
       const cached = readCachedAlphaXivLikes(id);
       return cached ? { ...cached, href } : undefined;
-    }, load: () => fetchAlphaXivLikes(id) };
+    }, load: () => fetchAlphaXivLikes(id, true) };
   }, [id]);
   return <>
     <PaperMetric metric={citations} label={t.citations} testId="paper-citations" Icon={Quote} linkWhenUnavailable />
