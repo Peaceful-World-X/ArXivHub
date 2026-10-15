@@ -15,6 +15,7 @@
     <a href="https://arxivhub.github.io/"><img src="https://visitor-badge.laobi.icu/badge?page_id=Peaceful-World-X.ArXivHub&amp;left_color=%236B5B52&amp;right_color=%23D97757" alt="访问数"></a>
     <a href="https://linux.do"><img src="https://shorturl.at/ggSqS" alt="LINUX DO"></a>
     <a href="https://www.nodeseek.com"><img src="public/badges/nodeseek.svg" alt="NodeSeek BBS" width="115" height="20"></a>
+    <a href="https://gitdiagram.com/peaceful-world-x/arxivhub"><img src="public/badges/gitdiagram.svg" alt="GitDiagram" width="110" height="20"></a>
   </p>
 </div>
 
