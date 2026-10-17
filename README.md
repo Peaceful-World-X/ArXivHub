@@ -5,16 +5,16 @@
   <h1>ArXiv Hub · 论桥</h1>
   <p>输入 arXiv ID，一站跳转阅读、翻译、检索与讨论工具，支持网页和浏览器脚本。</p>
   <p>
-    <a href="https://arxivhub.github.io/">在线使用</a>
+    <a href="https://arxivhub.github.io/">🌐在线使用</a>
     ·
-    <a href="https://raw.githubusercontent.com/Peaceful-World-X/ArXivHub/main/ArXivHub.user.js">安装脚本</a>
+    <a href="https://raw.githubusercontent.com/Peaceful-World-X/ArXivHub/main/ArXivHub.user.js">🔧安装脚本</a>
   </p>
   <p>
     <a href="https://github.com/sindresorhus/awesome#readme"><img src="https://awesome.re/badge.svg" alt="Awesome" height="20"></a>
     <a href="https://github.com/Peaceful-World-X/ArXivHub/stargazers"><img src="https://img.shields.io/github/stars/Peaceful-World-X/ArXivHub?style=flat&amp;color=b31b1b&amp;label=Stars" alt="Stars"></a>
     <a href="https://arxivhub.github.io/"><img src="https://visitor-badge.laobi.icu/badge?page_id=Peaceful-World-X.ArXivHub&amp;left_color=%236B5B52&amp;right_color=%23D97757" alt="访问数"></a>
-    <a href="https://linux.do"><img src="https://shorturl.at/ggSqS" alt="LINUX DO"></a>
-    <a href="https://www.nodeseek.com"><img src="public/badges/nodeseek.svg" alt="NodeSeek BBS" width="115" height="20"></a>
+    <a href="https://linux.do/t/topic/2988581"><img src="https://shorturl.at/ggSqS" alt="LINUX DO"></a>
+    <a href="https://www.nodeseek.com/post-967658-1"><img src="public/badges/nodeseek.svg" alt="NodeSeek BBS" width="115" height="20"></a>
     <a href="https://gitdiagram.com/peaceful-world-x/arxivhub"><img src="public/badges/gitdiagram.svg" alt="GitDiagram" width="110" height="20"></a>
   </p>
 </div>
