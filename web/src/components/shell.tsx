@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bookmark, Github, Info, MessageSquare, Puzzle, Star, X } from "lucide-react";
+import { ArrowUpRight, Bookmark, Github, Info, MessageSquare, Puzzle, Star, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
@@ -117,6 +117,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <nav aria-label={t.friendLinks} className="flex shrink-0 items-center gap-3 text-xs text-muted">
             <a href="https://peaceful-world-x.github.io/Action-Chunking-Survey/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent"><img src={`${import.meta.env.BASE_URL}icons/action-chunking-survey.png`} alt="" width="24" height="24" className="size-6 object-contain" />Action-Chunking-Survey</a>
             <a href="https://peaceful-world-x.github.io/LeRobot_TraceLab/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent"><img src={`${import.meta.env.BASE_URL}icons/lerobot-tracelab.png`} alt="" width="24" height="24" className="size-6 object-contain" />LeRobot_TraceLab</a>
+            <a href="https://harness-agent.ai/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent"><ArrowUpRight aria-hidden="true" className="size-4" />Harness Agent</a>
           </nav>
             <button type="button" onClick={() => setCelebration((value) => ({ id: (value?.id ?? 0) + 1, kind: "realistic" }))} title={t.celebration} className="shrink-0 text-xs text-subtle hover:text-accent">
               © 2026 耗不尽的先生 | Peaceful-World-X
