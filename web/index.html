@@ -8,19 +8,17 @@
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <title>ArXiv Hub · 论桥</title>
     <script>
-      if (window.location.hostname === "arxivhub.com") {
-        const target = new URL("https://arxivhub.github.io/");
-        target.pathname = window.location.pathname;
-        target.search = window.location.search;
-        target.hash = window.location.hash;
-        window.location.replace(target.href);
-      }
+      (() => {
+        const current = new URL(window.location.href);
+        const redirectFlag = "__arxivhub_redirect";
+        if (current.hostname !== "arxivhub.github.io" || !current.searchParams.has(redirectFlag)) return;
+        current.searchParams.delete(redirectFlag);
+        window.history.replaceState(null, "", `${current.pathname}${current.search}${current.hash}`);
+      })();
     </script>
   </head>
   <body>
-    <div id="root">
-      <a href="https://xinquji.com" target="_blank" rel="noopener noreferrer"><img src="https://xinquji.com/badge?lang=en" alt="Featured on Xinquji.com" style="width:200px;height:54px;" width="200" height="54" /></a>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

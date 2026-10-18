@@ -17,28 +17,18 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Build static site
-        run: npm run build
-        env:
-          VITE_BASE: /${{ github.event.repository.name }}/
+      - name: Prepare redirect site
+        run: |
+          mkdir -p site
+          cp index.html 404.html CNAME site/
+          touch site/.nojekyll
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: web/dist
+          path: site
 
   deploy:
     needs: build

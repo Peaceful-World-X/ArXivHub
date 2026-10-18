@@ -3,18 +3,22 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="0;url=https://arxivhub.github.io/">
     <link rel="canonical" href="https://arxivhub.github.io/">
-    <title>正在前往 ArXiv Hub · 论桥</title>
+    <title>ArXiv Hub · 论桥</title>
     <script>
-      const target = new URL("https://arxivhub.github.io/");
-      target.pathname = window.location.pathname;
-      target.search = window.location.search;
-      target.hash = window.location.hash;
-      window.location.replace(target.href);
+      (() => {
+        const current = new URL(window.location.href);
+        const target = new URL("https://arxivhub.github.io/");
+        const redirectFlag = "__arxivhub_redirect";
+        target.pathname = current.pathname.replace(/^\/ArXivHub(?=\/|$)/, "") || "/";
+        target.search = current.search;
+        target.hash = current.hash;
+
+        if (current.searchParams.get(redirectFlag) === "1") return;
+        target.searchParams.set(redirectFlag, "1");
+        window.location.replace(target.href);
+      })();
     </script>
   </head>
-  <body>
-    <p>正在前往 <a href="https://arxivhub.github.io/">ArXiv Hub · 论桥</a>……</p>
-  </body>
+  <body></body>
 </html>
