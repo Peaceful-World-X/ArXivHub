@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Bookmark, Github, Info, MessageSquare, Puzzle, Star, X } from "lucide-react";
+import { ArrowUpRight, Bookmark, Github, Info, MessageSquare, Puzzle, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
@@ -83,16 +83,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Github className="size-4" />
               <span className="hidden sm:inline">{t.github}</span>
             </a>
-            <a
-              href={REPOSITORY_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-sm px-2 py-2 text-xs font-medium text-muted no-underline hover:bg-surface-2 hover:text-accent sm:px-3 sm:text-sm"
-              aria-label={t.star}
-            >
-              <Star aria-hidden="true" className="size-4" />
-              <span className="hidden sm:inline">{t.star}</span>
-            </a>
             <Button
               variant="ghost"
               size="sm"
@@ -108,6 +98,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <button type="button" onClick={() => setShowInstallGuide(true)} aria-label={t.installGuideTitle} title={t.installGuideTitle} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-sm px-2 text-sm text-muted hover:bg-surface-2 hover:text-accent">
               <Puzzle className="size-4" aria-hidden="true" /><span className="hidden sm:inline">{t.installEntry}</span>
             </button>
+            <a href="https://xinquji.com" target="_blank" rel="noopener noreferrer" className="hidden shrink-0 items-center hover:opacity-85 sm:inline-flex" aria-label="Featured on Xinquji.com"><img src="https://xinquji.com/badge?lang=en" alt="Featured on Xinquji.com" style={{ width: 140, height: 38 }} width="140" height="38" /></a>
           </nav>
         </div>
       </header>
