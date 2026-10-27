@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUpRight, Star } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Shell } from "@/components/shell";
 import { copy as i18n } from "@/lib/i18n";
 import { useHub } from "@/lib/store";
@@ -19,6 +20,20 @@ const numbers = new Map(groups.flatMap((group) => group.tools).map((tool, index)
 function About() {
   const lang = useHub((s) => s.lang);
   const t = i18n[lang];
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = mapRef.current;
+    if (!container || container.querySelector("#mapmyvisitors")) return;
+    const script = document.createElement("script");
+    script.id = "mapmyvisitors";
+    script.type = "text/javascript";
+    // 地图背景、陆地、文字和访问点使用与页面一致的暖色系。
+    script.src = "https://mapmyvisitors.com/map.js?d=MaMamu8PtDHuTFu97IS3PgGn8wtZ7iIpHvv4NF9MTN8&co=fff8f6&cl=d8c5bd&ct=755f5c&cmo=b31b1b&cmn=d97757&w=a";
+    container.appendChild(script);
+    return () => container.replaceChildren();
+  }, []);
+
   return (
     <Shell>
       <section className="max-w-3xl" data-testid="about-intro">
@@ -74,6 +89,12 @@ function About() {
             </section>
           ))}
         </div>
+      </section>
+
+      <section className="mt-12 border-t border-border pt-8" aria-labelledby="visitor-map-heading" data-testid="visitor-map">
+        <h2 id="visitor-map-heading" className="font-display text-2xl">{lang === "zh" ? "访问地图" : "Visitor map"}</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted">{lang === "zh" ? "看看 ArXiv Hub 的访问足迹。" : "See where ArXiv Hub visitors come from."}</p>
+        <div ref={mapRef} className="mt-4 min-h-24 w-full max-w-3xl overflow-hidden rounded-lg border border-border bg-bg p-3 sm:p-5 [&_img]:h-auto [&_img]:max-w-full" />
       </section>
     </Shell>
   );
